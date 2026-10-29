@@ -2,7 +2,7 @@
 
 [한국어](README.md) | **English**
 
-A desktop editor for plain text, Markdown and HTML. Markdown and HTML are edited WYSIWYG (what you see is what you get).
+An editor for plain text, Markdown and HTML, available as a Windows and macOS app and as a [web version](#web-version). Markdown and HTML are edited WYSIWYG (what you see is what you get).
 
 ## Installation
 
@@ -18,6 +18,28 @@ Download the file for your system from [Releases](https://github.com/chojema/cho
 - **macOS**: open the DMG and drag the app into the Applications folder. If macOS blocks the first launch, Control-click the app in Finder and choose "Open", or click "Open Anyway" in System Settings → Privacy & Security.
 - **Windows**: the setup wizard lets you choose the install folder and needs no administrator rights. If "Windows protected your PC" appears, click "More info" → "Run anyway".
 - After installation, `.md`, `.markdown`, `.html`, `.htm` and `.txt` files can be opened with the app.
+
+## Web version
+
+Use it in the browser without installing: **https://chojema.github.io/chojema-editor/**
+
+Editing works as in the desktop app. Files are handled inside the browser and never sent to a server. There is no menu bar: click the document-type button at the left of the status bar (`Markdown ▾` and so on) for New, Open, Save, Export and Language. Keyboard shortcuts are the same as in the desktop app.
+
+### Limits of the web version
+
+The web version can only do what the browser allows, so some things differ from the desktop app.
+
+| | Desktop app | Web version |
+|---|---|---|
+| Saving | Saves to the original file | Chrome/Edge: pick a location on the first save, later saves go to the same file. Firefox/Safari: every save downloads the file |
+| Opening | Open dialog, drag and drop, double-clicking a file | Open dialog and drag and drop only. A dropped file asks for a location on its first save |
+| Pasted images | Saved as files in an `assets/` folder beside the document | Embedded in the document (data URI), which makes the file larger |
+| Files beside the document | Relative images and external CSS of HTML files are shown | Cannot be read, so they are not shown (web addresses still work) |
+| PDF export | Writes a PDF file directly | Opens the print dialog; choose "Save as PDF". Margins and headers follow the browser settings |
+| Several documents | One window per document | One tab per document |
+| Shortcuts | All available | Shortcuts the browser keeps for itself, such as `Ctrl+N` and `Ctrl+W`, are not available |
+| Theme | Light or dark can be chosen | Follows the system or browser setting |
+| Closing | Asks whether to save | Only the browser's "Leave site?" warning |
 
 ## Features
 

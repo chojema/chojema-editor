@@ -3,7 +3,6 @@
 **한국어** | [English](README.en.md)
 
 일반 텍스트, Markdown, HTML을 편집하는 데스크톱 편집기입니다. Markdown과 HTML은 위지위그(보이는 그대로) 방식으로 편집합니다.
-[chojemaoffice](https://github.com/chojema/chojemaoffice)의 Markdown 편집기 코드를 바탕으로 만들었습니다(Apache-2.0, `NOTICE` 참고).
 
 ## 설치
 
@@ -108,7 +107,7 @@ src/renderer/
   App.tsx        문서 종류에 따라 편집 화면 선택, 저장, 상태 표시줄
   text/          CodeMirror 편집기 (텍스트 문서, 소스 보기)
   markdown/      Markdown 편집 화면, 원문 보존 직렬화
-  editor/        Markdown용 TipTap 확장 (원본에서 가져옴)
+  editor/        Markdown용 TipTap 확장
   html/          HTML 편집 화면, 속성 보존, 보존 블록, CSS 범위 지정
   components/    툴바, 찾기, 표 메뉴, 슬래시 메뉴 등
 tests/           HTML·Markdown 왕복 변환 테스트
@@ -120,8 +119,8 @@ tests/           HTML·Markdown 왕복 변환 테스트
 
 ## 추후 과제
 
-AI 기능은 나중에 추가할 예정입니다. 참고할 원본 코드 위치는 [docs/FUTURE-AI.md](docs/FUTURE-AI.md)에 있습니다.
+AI 기능은 나중에 추가할 예정입니다. 계획은 [docs/FUTURE-AI.md](docs/FUTURE-AI.md)에 있습니다.
 
 ## 라이선스
 
-[Apache License 2.0](LICENSE). 원본 프로젝트의 고지 사항과 가져온 파일 목록은 [NOTICE](NOTICE)에 있습니다.
+[Apache License 2.0](LICENSE). 고지 사항은 [NOTICE](NOTICE)를 참고하세요.

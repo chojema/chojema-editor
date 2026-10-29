@@ -3,7 +3,6 @@
 [한국어](README.md) | **English**
 
 A desktop editor for plain text, Markdown and HTML. Markdown and HTML are edited WYSIWYG (what you see is what you get).
-Built on the Markdown editor code of [chojemaoffice](https://github.com/chojema/chojemaoffice) (Apache-2.0, see `NOTICE`).
 
 ## Installation
 
@@ -108,7 +107,7 @@ src/renderer/
   App.tsx        Picks the editing surface by document type; save; status bar
   text/          CodeMirror editor (text documents, source views)
   markdown/      Markdown surface and text-preserving serialization
-  editor/        TipTap extensions for Markdown (from the upstream project)
+  editor/        TipTap extensions for Markdown
   html/          HTML surface, attribute preservation, preserved blocks, CSS scoping
   components/    Toolbar, find bar, table menu, slash menu, …
 tests/           HTML and Markdown round-trip tests
@@ -120,8 +119,8 @@ The source is `build/icon.svg`. After changing it, regenerate `icon.png` (1024 p
 
 ## Future work
 
-AI features are planned for a later version. Pointers to the upstream code to start from are in [docs/FUTURE-AI.md](docs/FUTURE-AI.md) (in Korean).
+AI features are planned for a later version. The plan is in [docs/FUTURE-AI.md](docs/FUTURE-AI.md) (in Korean).
 
 ## License
 
-[Apache License 2.0](LICENSE). The upstream notice and the list of files taken from it are in [NOTICE](NOTICE).
+[Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for notices.

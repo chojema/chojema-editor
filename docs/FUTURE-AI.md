@@ -1,25 +1,21 @@
 # 추후 과제: AI 기능
 
-2026-10-29 결정: 첫 버전에서 AI 기능은 넣지 않는다. 나중에 붙일 때 참고할 원본 위치를 적어 둔다.
-원본: https://github.com/chojema/chojemaoffice (Apache-2.0)
+첫 버전(0.1.0)에는 AI 기능을 넣지 않았습니다. 나중에 추가할 기능과 구현할 때 알아둘 점을 적어 둡니다.
 
-## 원본에서 가져올 후보
+## 추가할 기능
 
-| 역할 | 원본 경로 |
+| 기능 | 내용 |
 |---|---|
-| AI 패널 화면 | `apps/markdown/src/renderer/ai/AiPanel.tsx`, `EditQueueCard.tsx`, `MindMapCard.tsx` |
-| 문서 편집 도구(모델이 문서를 고치는 명령) | `apps/markdown/src/renderer/ai/tools.ts`, `doc-writer.ts`, `edit-queue.ts` |
-| 선택 영역 질문 팝오버 | `apps/markdown/src/renderer/components/AiAskPopover.tsx` |
-| AI 서비스 구독 연결 | `apps/markdown/src/renderer/ai/subscription-client.ts`, `packages/ai-provider` |
-| AI 실행 엔진 | `packages/agent-core` |
-| 검색 도구 | `packages/ai-search`, `apps/markdown/src/renderer/ai/search-skill.ts` |
-| AI에 숨길 내용(가림 처리) | `apps/markdown/src/renderer/editor/redact.ts`, `Redaction.ts`, `RedactDialog.tsx` |
-| AI 변경 강조 표시 | `apps/markdown/src/renderer/editor/aiHighlight.ts`, `aiQueueAnchors.ts` |
-| HTML 쪽 AI | `apps/html/src/renderer/ai/*` |
+| AI 패널 | 문서 옆에서 대화하며 요약·다듬기·번역 등을 요청 |
+| 문서 편집 도구 | AI가 제안한 수정을 문서에 적용하고, 적용 전에 검토·취소 |
+| 선택 영역 질문 | 고른 문장에 대해 바로 묻거나 고쳐 쓰기 |
+| 가림 처리 | 문서에는 남기되 AI에는 보내지 않을 내용 지정 |
+| 변경 강조 | AI가 바꾼 부분을 잠시 표시 |
+| HTML 문서 지원 | 위 기능을 HTML 편집 화면에서도 사용 |
 
-## 붙일 때 알아둘 점
+## 구현할 때 알아둘 점
 
-- `src/renderer/editor/ops.ts`는 원본의 문서 편집 명령(MdOp) 구조를 그대로 두었다. AI 도구는 이 명령을 그대로 쓸 수 있다.
-- `ops.ts`에서 뺀 가림 처리 검사(`assertPlaceholdersIntact`)는 가림 처리를 다시 넣을 때 함께 되살린다.
-- `editor/extensions.ts`에서 뺀 확장: `AiHighlight`, `AiQueueAnchors`, `Redaction`.
-- HTML 편집기는 원본과 구조가 달라서(원본은 소스+미리보기, 이 앱은 TipTap 위지위그) `apps/html`의 AI 코드는 그대로 쓰기 어렵다. 마크다운 쪽 도구 방식을 HTML에 맞춰 옮기는 편이 낫다.
+- `src/renderer/editor/ops.ts`의 문서 편집 명령(MdOp)은 AI 도구가 그대로 쓸 수 있는 형태입니다. 블록 삽입·교체·삭제, 서식, 목록, 표 편집을 이 명령으로 처리합니다.
+- 가림 처리를 넣을 때는 AI가 돌려준 내용이 가림 표시를 망가뜨리지 않았는지 `parseMarkdownToNodes`에서 검사해야 합니다.
+- 변경 강조와 가림 처리는 `src/renderer/editor/extensions.ts`에 TipTap 확장으로 추가합니다.
+- HTML 편집 화면은 Markdown과 같은 TipTap 기반이므로, Markdown용 도구를 HTML 노드에 맞춰 확장하는 방식이 적합합니다.

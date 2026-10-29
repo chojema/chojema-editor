@@ -32,6 +32,8 @@ export interface SurfaceProps {
   path: string | null
   wrap: boolean
   zoom: number
+  /** tag and attribute completions in source panes */
+  autoComplete: boolean
   onDirty: () => void
   onStats: (stats: DocStats) => void
   onSave: () => void

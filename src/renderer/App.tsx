@@ -49,6 +49,7 @@ export function App() {
   const [zoom, setZoom] = useState(() => Number(readPref('chojema.zoom', '100')) || 100)
   const [wrap, setWrap] = useState(() => readPref('chojema.wrap', '1') === '1')
   const [autoCopy, setAutoCopy] = useState(false)
+  const [autoComplete, setAutoComplete] = useState(true)
   const surfaceRef = useRef<SurfaceHandle>(null)
 
   useEffect(() => {
@@ -57,8 +58,14 @@ export function App() {
       setPath(doc.path)
       setEncoding(doc.encoding)
       setAutoCopy(doc.autoCopy)
+      setAutoComplete(doc.autoComplete)
     })
-    return window.editorApi.onAutoCopyChanged(setAutoCopy)
+    const offCopy = window.editorApi.onAutoCopyChanged(setAutoCopy)
+    const offComplete = window.editorApi.onAutoCompleteChanged(setAutoComplete)
+    return () => {
+      offCopy()
+      offComplete()
+    }
   }, [])
 
   useEffect(() => writePref('chojema.zoom', String(zoom)), [zoom])
@@ -214,6 +221,7 @@ export function App() {
     path,
     wrap,
     zoom,
+    autoComplete,
     onDirty: markDirty,
     onStats: setStats,
     onSave: () => void save(),

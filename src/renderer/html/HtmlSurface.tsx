@@ -83,7 +83,7 @@ function styleKey(envelope: HtmlEnvelope): string {
  * the browser shows.
  */
 export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function HtmlSurface(
-  { initialContent, path, wrap, zoom, onDirty, onStats, onSave },
+  { initialContent, path, wrap, zoom, autoComplete, onDirty, onStats, onSave },
   ref,
 ) {
   const startText = initialContent || NEW_HTML_DOCUMENT
@@ -264,6 +264,7 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
           language="html"
           wrap={wrap}
           zoom={zoom}
+          completion={autoComplete}
           visualScrollRef={scrollRef}
           visualClassName="html-scroll"
         >

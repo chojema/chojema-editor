@@ -33,7 +33,7 @@ import { t } from '../i18n/locale'
  * only that block in the source pane.
  */
 export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function MarkdownSurface(
-  { initialContent, path, wrap, zoom, onDirty, onStats, onSave },
+  { initialContent, path, wrap, zoom, autoComplete, onDirty, onStats, onSave },
   ref,
 ) {
   const envelopeRef = useRef<DocEnvelope | null>(null)
@@ -203,6 +203,7 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
           language="markdown"
           wrap={wrap}
           zoom={zoom}
+          completion={autoComplete}
           visualScrollRef={scrollRef}
         >
           <div className="doc-page" style={{ zoom: zoom / 100 }}>

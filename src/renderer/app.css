@@ -564,6 +564,38 @@ body.is-resizing .pane {
   }
 }
 
+/* ---- source pane syntax colours (see text/sourceHighlight.ts) ---- */
+
+:root {
+  --src-tag: #116329;
+  --src-attr: #0550ae;
+  --src-string: #0a3069;
+  --src-number: #0550ae;
+  --src-keyword: #cf222e;
+  --src-meta: #8250df;
+  --src-comment: #6e7781;
+  --src-punct: #6e7781;
+  --src-heading: #0550ae;
+  --src-link: #0969da;
+  --src-invalid: #cf222e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --src-tag: #7ee787;
+    --src-attr: #79c0ff;
+    --src-string: #a5d6ff;
+    --src-number: #79c0ff;
+    --src-keyword: #ff7b72;
+    --src-meta: #d2a8ff;
+    --src-comment: #8b949e;
+    --src-punct: #8b949e;
+    --src-heading: #79c0ff;
+    --src-link: #58a6ff;
+    --src-invalid: #ff7b72;
+  }
+}
+
 .status-warn {
   color: var(--danger);
   font-weight: 600;

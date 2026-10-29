@@ -17,6 +17,11 @@ const api: EditorApi = {
   print: (request) => ipcRenderer.invoke(IPC.print, request),
   copyRich: (html, text) => ipcRenderer.send(IPC.copyRich, html, text),
   setAutoCopy: (on) => ipcRenderer.send(IPC.setAutoCopy, on),
+  onAutoCompleteChanged(handler) {
+    const listener = (_event: Electron.IpcRendererEvent, on: boolean) => handler(on)
+    ipcRenderer.on(IPC.autoCompleteChanged, listener)
+    return () => ipcRenderer.removeListener(IPC.autoCompleteChanged, listener)
+  },
   onAutoCopyChanged(handler) {
     const listener = (_event: Electron.IpcRendererEvent, on: boolean) => handler(on)
     ipcRenderer.on(IPC.autoCopyChanged, listener)

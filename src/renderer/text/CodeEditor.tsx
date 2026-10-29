@@ -1,17 +1,17 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
-import { closeBrackets } from '@codemirror/autocomplete'
+import { autocompletion, closeBrackets, completionKeymap } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { html } from '@codemirror/lang-html'
 import { markdown } from '@codemirror/lang-markdown'
 import {
   bracketMatching,
-  defaultHighlightStyle,
   foldGutter,
   indentOnInput,
   syntaxHighlighting,
 } from '@codemirror/language'
 import { highlightSelectionMatches, openSearchPanel, search, searchKeymap } from '@codemirror/search'
 import { Annotation, Compartment, EditorState, type Extension } from '@codemirror/state'
+import { sourceHighlight } from './sourceHighlight'
 import {
   drawSelection,
   EditorView,
@@ -47,6 +47,14 @@ interface Props {
   onFocus?: () => void
   /** text size relative to the 14px default (1 = 100%) */
   fontScale?: number
+  /** offer tag and attribute completions (HTML, and HTML inside Markdown) */
+  completion?: boolean
+}
+
+/** completions pop up only where the language has something to offer (tags, attributes, values) */
+function completionExtension(language: CodeLanguage, on: boolean): Extension {
+  if (!on || language === 'text') return []
+  return [autocompletion({ icons: false, maxRenderedOptions: 40 }), keymap.of(completionKeymap)]
 }
 
 const BASE_FONT_PX = 14
@@ -79,17 +87,37 @@ const theme = EditorView.theme({
     backgroundColor: 'color-mix(in srgb, var(--accent) 28%, transparent) !important',
   },
   '.cm-panels': { backgroundColor: 'var(--surface)', color: 'var(--text)' },
+  '.cm-tooltip': {
+    backgroundColor: 'var(--surface)',
+    color: 'var(--text)',
+    border: '1px solid var(--border)',
+    borderRadius: '6px',
+    boxShadow: 'var(--shadow-menu)',
+    overflow: 'hidden',
+  },
+  '.cm-tooltip.cm-tooltip-autocomplete > ul': {
+    fontFamily: "'SF Mono', Menlo, Consolas, monospace",
+    maxHeight: '16em',
+  },
+  '.cm-tooltip.cm-tooltip-autocomplete > ul > li': { padding: '2px 10px' },
+  '.cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]': {
+    backgroundColor: 'var(--accent-soft)',
+    color: 'var(--text)',
+  },
+  '.cm-completionMatchedText': { textDecoration: 'none', fontWeight: '700', color: 'var(--accent)' },
+  '.cm-completionDetail': { color: 'var(--text-muted)', fontStyle: 'normal', marginLeft: '0.8em' },
 })
 
 /** CodeMirror 6 host used for plain text files and for the Markdown/HTML source views */
 export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor(
-  { initialValue, language, wrap, placeholder, onChange, onStats, onFocus, fontScale = 1 },
+  { initialValue, language, wrap, placeholder, onChange, onStats, onFocus, fontScale = 1, completion = true },
   ref,
 ) {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const wrapCompartment = useRef(new Compartment())
   const fontCompartment = useRef(new Compartment())
+  const completionCompartment = useRef(new Compartment())
   const onChangeRef = useRef(onChange)
   const onStatsRef = useRef(onStats)
   onChangeRef.current = onChange
@@ -117,8 +145,10 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
         highlightActiveLine(),
         highlightSelectionMatches(),
         search({ top: true }),
-        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        syntaxHighlighting(sourceHighlight),
         languageExtension(language),
+        // before the default keys, so Enter/Esc go to an open completion list first
+        completionCompartment.current.of(completionExtension(language, completion)),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
         wrapCompartment.current.of(wrap ? EditorView.lineWrapping : []),
         placeholder ? placeholderExt(placeholder) : [],
@@ -159,6 +189,12 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
   useEffect(() => {
     viewRef.current?.dispatch({ effects: fontCompartment.current.reconfigure(fontTheme(fontScale)) })
   }, [fontScale])
+
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: completionCompartment.current.reconfigure(completionExtension(language, completion)),
+    })
+  }, [language, completion])
 
   useImperativeHandle(ref, () => ({
     getValue: () => withEol(viewRef.current?.state.doc.toString() ?? ''),

@@ -207,6 +207,8 @@ interface PanesProps {
   wrap: boolean
   /** text size of the source pane, in percent */
   zoom: number
+  /** tag and attribute completions in the source pane */
+  completion: boolean
   /** the visual editor's scroll container (receives scroll sync) */
   visualScrollRef: React.RefObject<HTMLDivElement | null>
   /** extra class for the visual scroll container */
@@ -224,6 +226,7 @@ export function Panes({
   language,
   wrap,
   zoom,
+  completion,
   visualScrollRef,
   visualClassName,
   children,
@@ -283,6 +286,7 @@ export function Panes({
             language={language}
             wrap={wrap}
             fontScale={zoom / 100}
+            completion={completion}
             onChange={onSourceChange}
             onFocus={() => (lastPaneRef.current = 'source')}
           />

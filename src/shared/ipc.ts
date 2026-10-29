@@ -31,6 +31,8 @@ export interface InitialDoc {
   encoding: TextEncoding
   /** app-wide preference: copy a selection to the clipboard as soon as it is made */
   autoCopy: boolean
+  /** app-wide preference: tag and attribute completions in source panes */
+  autoComplete: boolean
 }
 
 export interface SaveResult {
@@ -95,6 +97,7 @@ export interface EditorApi {
   copyRich(html: string, text: string): void
   setAutoCopy(on: boolean): void
   onAutoCopyChanged(handler: (on: boolean) => void): () => void
+  onAutoCompleteChanged(handler: (on: boolean) => void): () => void
   onMenuCommand(handler: (command: MenuCommand) => void): () => void
   /** main asks the renderer to save before the window closes; reply with the outcome */
   onSaveBeforeClose(handler: () => Promise<boolean>): () => void
@@ -117,6 +120,7 @@ export const IPC = {
   copyRich: 'clipboard:rich',
   setAutoCopy: 'pref:set-auto-copy',
   autoCopyChanged: 'pref:auto-copy-changed',
+  autoCompleteChanged: 'pref:auto-complete-changed',
   menuCommand: 'menu:command',
   saveBeforeClose: 'doc:save-before-close',
   saveBeforeCloseReply: 'doc:save-before-close-reply',

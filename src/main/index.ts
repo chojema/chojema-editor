@@ -289,10 +289,11 @@ type ThemeSource = 'system' | 'light' | 'dark'
 interface Prefs {
   theme: ThemeSource
   autoCopy: boolean
+  autoComplete: boolean
 }
 
 const PREFS_FILE = () => join(app.getPath('userData'), 'preferences.json')
-let prefs: Prefs = { theme: 'system', autoCopy: false }
+let prefs: Prefs = { theme: 'system', autoCopy: false, autoComplete: true }
 
 function loadPrefs(): void {
   try {
@@ -301,6 +302,7 @@ function loadPrefs(): void {
     prefs = {
       theme: saved.theme === 'light' || saved.theme === 'dark' ? saved.theme : 'system',
       autoCopy: saved.autoCopy === true,
+      autoComplete: saved.autoComplete !== false,
     }
   } catch {
     // unreadable preferences fall back to the defaults
@@ -323,6 +325,13 @@ function setAutoCopy(on: boolean): void {
   const item = Menu.getApplicationMenu()?.getMenuItemById('autoCopy')
   if (item) item.checked = on
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.autoCopyChanged, on)
+}
+
+function setAutoComplete(on: boolean): void {
+  savePrefs({ autoComplete: on })
+  const item = Menu.getApplicationMenu()?.getMenuItemById('autoComplete')
+  if (item) item.checked = on
+  for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.autoCompleteChanged, on)
 }
 
 async function openWithDialog(): Promise<void> {
@@ -431,6 +440,13 @@ function buildMenu(): void {
           checked: prefs.autoCopy,
           click: (item) => setAutoCopy(item.checked),
         },
+        {
+          id: 'autoComplete',
+          label: '소스 자동 완성',
+          type: 'checkbox',
+          checked: prefs.autoComplete,
+          click: (item) => setAutoComplete(item.checked),
+        },
       ],
     },
     {
@@ -481,19 +497,19 @@ function buildMenu(): void {
 function registerIpc(): void {
   ipcMain.handle(IPC.getInitialDoc, async (event): Promise<InitialDoc> => {
     const found = docFor(event.sender)
-    const autoCopy = prefs.autoCopy
-    if (!found) return { path: null, kind: 'text', content: '', encoding: 'UTF-8', autoCopy }
+    const { autoCopy, autoComplete } = prefs
+    if (!found) return { path: null, kind: 'text', content: '', encoding: 'UTF-8', autoCopy, autoComplete }
     const { doc } = found
-    if (!doc.path) return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy }
+    if (!doc.path) return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy, autoComplete }
     try {
       const { text, encoding } = decodeText(await readFile(doc.path))
       doc.encoding = encoding
-      return { path: doc.path, kind: doc.kind, content: text, encoding, autoCopy }
+      return { path: doc.path, kind: doc.kind, content: text, encoding, autoCopy, autoComplete }
     } catch (error) {
       dialog.showErrorBox('파일을 열 수 없습니다', `${doc.path}\n\n${String(error)}`)
       doc.path = null
       refreshTitle(found.win)
-      return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy }
+      return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy, autoComplete }
     }
   })
 

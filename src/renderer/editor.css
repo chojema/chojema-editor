@@ -1,4 +1,4 @@
-/* Ported from chojemaoffice apps/markdown/src/renderer/styles.css and packages/ui/src/dropdown.css (Apache-2.0). */
+/* Derived from GenOffice (Apache-2.0) and modified. */
 /* Per-app accent (word-blue family) + markdown-only tokens.
  * Chrome tokens (surface/text/border/…, AI panel --color-*) come from
  * @genoffice/ui/tokens.css; nothing here may shadow those names. */

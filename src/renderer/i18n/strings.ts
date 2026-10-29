@@ -1,6 +1,6 @@
 /**
- * UI strings. The editor-block keys come from chojemaoffice
- * apps/markdown/src/renderer/i18n/strings.ts (Apache-2.0); the rest are Chojema Editor's own.
+ * UI strings. The editor-block keys are derived from GenOffice (Apache-2.0);
+ * the rest are Chojema Editor's own.
  */
 export const strings = {
   ko: {

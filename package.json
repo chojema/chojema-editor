@@ -90,6 +90,16 @@
       "out/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
+      },
+      {
+        "from": "NOTICE",
+        "to": "NOTICE"
+      }
+    ],
     "mac": {
       "category": "public.app-category.productivity",
       "target": [

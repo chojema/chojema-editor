@@ -1,35 +1,9 @@
 Chojema Editor
 Copyright 2026 chojema
 
-This product includes software from chojemaoffice (IeumOffice)
-https://github.com/chojema/chojemaoffice
-licensed under the Apache License 2.0 (see LICENSE).
+Portions of this software are derived from GenOffice and have been modified.
 
-Notice carried over from chojemaoffice (only the part that applies to the
-files used here):
+GenOffice
+Copyright 2026 Mainfunc, Inc.
 
-  GenOffice
-  Copyright 2026 Mainfunc, Inc.
-
-  This product includes software developed at Mainfunc, Inc.
-
-Files taken from chojemaoffice and changed for Chojema Editor:
-- src/renderer/editor/*            (apps/markdown/src/renderer/editor)
-    changed: extensions.ts (assistant highlight, edit queue, redaction and
-    wiki-link extensions removed), math.ts (comment wording), ops.ts (redaction placeholder guard removed),
-    localImage.ts (image-host upload removed), diagrams.ts (local image type),
-    CodeBlockView.tsx and blockDragHandle.ts (import paths)
-- src/renderer/markdown/*          (apps/markdown/src/renderer/markdown)
-    changed: sourceSplice.ts (no extra blank line before a kept block whose
-    source starts with its own blank line)
-- src/renderer/components/SlashMenu.tsx, TableMenu.tsx, toast.tsx,
-  toast-bus.ts, icons.tsx          (apps/markdown/src/renderer/components)
-- src/renderer/components/docs-icons.tsx (apps/docs/src/renderer/components/icons.tsx)
-- src/renderer/components/dropdown.tsx, popover-dismiss.ts (packages/ui/src)
-    changed: popover-dismiss.ts (preload namespace)
-- src/renderer/tokens.css          (packages/ui/src/tokens.css)
-- src/renderer/editor.css          (excerpts of apps/markdown/src/renderer/styles.css
-                                    and packages/ui/src/dropdown.css)
-- src/renderer/i18n/strings.ts     (Korean and English editor strings from
-                                    apps/markdown/src/renderer/i18n/strings.ts)
-- src/renderer/types/wavedrom.d.ts
+This product includes software developed at Mainfunc, Inc.

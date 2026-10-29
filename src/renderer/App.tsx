@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { docKindForPath, type DocKind, type InitialDoc } from '../shared/ipc'
+import { lineEnding, type TextEncoding } from '../shared/encoding'
 import { MarkdownSurface } from './markdown/MarkdownSurface'
 import { HtmlSurface } from './html/HtmlSurface'
 import { TextSurface } from './text/TextSurface'
@@ -15,6 +16,9 @@ const KIND_LABEL: Record<DocKind, StringKey> = {
 }
 
 const ZOOM_STEPS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200]
+
+/** files a drop on the window opens as documents (images go into the document instead) */
+const OPENABLE = /\.(md|markdown|mdown|mkd|html?|xhtml|txt)$/i
 
 function readPref(key: string, fallback: string): string {
   try {
@@ -35,6 +39,7 @@ function writePref(key: string, value: string): void {
 export function App() {
   const [initial, setInitial] = useState<InitialDoc | null>(null)
   const [path, setPath] = useState<string | null>(null)
+  const [encoding, setEncoding] = useState<TextEncoding>('UTF-8')
   const [dirty, setDirty] = useState(false)
   const dirtyRef = useRef(false)
   const [stats, setStats] = useState<DocStats>({ words: 0, chars: 0 })
@@ -46,11 +51,33 @@ export function App() {
     void window.editorApi.getInitialDoc().then((doc) => {
       setInitial(doc)
       setPath(doc.path)
+      setEncoding(doc.encoding)
     })
   }, [])
 
   useEffect(() => writePref('chojema.zoom', String(zoom)), [zoom])
   useEffect(() => writePref('chojema.wrap', wrap ? '1' : '0'), [wrap])
+
+  // a document file dropped anywhere on the window opens; other files are left to the editor
+  useEffect(() => {
+    const allow = (event: DragEvent) => {
+      if (event.dataTransfer?.types.includes('Files')) event.preventDefault()
+    }
+    const drop = (event: DragEvent) => {
+      const files = Array.from(event.dataTransfer?.files ?? [])
+      const docs = files.filter((file) => OPENABLE.test(file.name))
+      if (docs.length === 0) return
+      event.preventDefault()
+      event.stopPropagation()
+      window.editorApi.openPaths(docs.map((file) => window.editorApi.pathForFile(file)).filter(Boolean))
+    }
+    window.addEventListener('dragover', allow)
+    window.addEventListener('drop', drop, true)
+    return () => {
+      window.removeEventListener('dragover', allow)
+      window.removeEventListener('drop', drop, true)
+    }
+  }, [])
 
   const markDirty = useCallback(() => {
     if (dirtyRef.current) return
@@ -75,6 +102,7 @@ export function App() {
       dirtyRef.current = false
       setDirty(false)
       window.editorApi.setDirty(false)
+      if (result.encoding) setEncoding(result.encoding)
       if (result.path) {
         setPath(result.path)
         // Save As into another format reopens the file on the matching surface
@@ -89,9 +117,27 @@ export function App() {
     [initial],
   )
 
+  const exportAs = useCallback(async (target: 'html' | 'pdf' | 'print') => {
+    const surface = surfaceRef.current
+    if (!surface) return
+    try {
+      const page = await surface.exportPage()
+      if (target === 'print') {
+        await window.editorApi.print(page)
+        return
+      }
+      const result = target === 'html' ? await window.editorApi.exportHtml(page) : await window.editorApi.exportPdf(page)
+      if (result.ok) showToast(t('exported'))
+      else if (result.error) showToast(t('exportFailed', { error: result.error }), 'error')
+    } catch (error) {
+      showToast(t('exportFailed', { error: String(error) }), 'error')
+    }
+  }, [])
+
   useEffect(
     () =>
       window.editorApi.onMenuCommand((command) => {
+        const surface = surfaceRef.current
         switch (command) {
           case 'save':
             void save()
@@ -100,10 +146,25 @@ export function App() {
             void save(true)
             break
           case 'toggleSource':
-            surfaceRef.current?.toggleSource()
+            surface?.toggleSource()
+            break
+          case 'viewVisual':
+            surface?.setMode('visual')
+            break
+          case 'viewSplit':
+            surface?.setMode('split')
+            break
+          case 'viewSource':
+            surface?.setMode('source')
+            break
+          case 'toggleOutline':
+            surface?.toggleOutline()
             break
           case 'find':
-            surfaceRef.current?.openFind()
+            surface?.openFind(false)
+            break
+          case 'replace':
+            surface?.openFind(true)
             break
           case 'toggleWrap':
             setWrap((value) => !value)
@@ -117,9 +178,24 @@ export function App() {
           case 'zoomReset':
             setZoom(100)
             break
+          case 'exportHtml':
+            void exportAs('html')
+            break
+          case 'exportPdf':
+            void exportAs('pdf')
+            break
+          case 'print':
+            void exportAs('print')
+            break
+          case 'copyRich':
+            void surface?.richCopy().then(({ html, text }) => {
+              window.editorApi.copyRich(html, text)
+              showToast(t('copiedRich'))
+            })
+            break
         }
       }),
-    [save],
+    [save, exportAs],
   )
 
   useEffect(() => window.editorApi.onSaveBeforeClose(() => save()), [save])
@@ -152,6 +228,10 @@ export function App() {
         {stats.lines !== undefined && <span>{t('statLines', { n: stats.lines })}</span>}
         <span>{t('statWords', { n: stats.words.toLocaleString() })}</span>
         <span>{t('statChars', { n: stats.chars.toLocaleString() })}</span>
+        <span className={encoding === 'UTF-8' ? undefined : 'status-warn'} title={t('encodingTip')}>
+          {encoding}
+        </span>
+        <span>{lineEnding(initial.content)}</span>
         <button
           type="button"
           className="status-btn"

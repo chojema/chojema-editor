@@ -1,4 +1,5 @@
-import type { DocKind } from '../shared/ipc'
+import type { DocKind, ExportRequest } from '../shared/ipc'
+import type { ViewMode } from './views'
 
 /** what App needs from whichever editing surface is mounted */
 export interface SurfaceHandle {
@@ -6,8 +7,15 @@ export interface SurfaceHandle {
   getContent(): string
   /** the text just written to disk becomes the new baseline for "unchanged" */
   markSaved(content: string): void
+  setMode(mode: ViewMode): void
+  /** visual ↔ source */
   toggleSource(): void
-  openFind(): void
+  openFind(withReplace: boolean): void
+  toggleOutline(): void
+  /** the document as a standalone page for HTML/PDF export and printing */
+  exportPage(): Promise<ExportRequest>
+  /** the document as formatted text for the clipboard */
+  richCopy(): Promise<{ html: string; text: string }>
 }
 
 export interface DocStats {

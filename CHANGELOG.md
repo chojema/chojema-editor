@@ -5,6 +5,25 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-29
+
+### Added
+- 나란히 보기(`⌘2`): Markdown과 HTML 모두 왼쪽 소스·오른쪽 편집 화면을 함께 보며 양쪽에서 편집. 서로 자동 반영, 스크롤 연동, 폭 조절. 보기 방식은 문서 종류별로 기억.
+- 개요 패널(`⇧⌘O`): 제목 목록에서 눌러 이동.
+- 편집 화면의 찾아 바꾸기(`⌥⌘F`): 하나씩 바꾸기, 모두 바꾸기(한 번에 실행 취소 가능).
+- 내보내기: HTML로 저장(이미지 포함 한 파일), PDF로 저장, 서식 있는 텍스트로 복사, 인쇄(`⌘P`).
+- 문서 속성(frontmatter) 편집 상자.
+- 코드 블록 문법 색상.
+- 테마 선택(시스템/밝게/어둡게).
+- 문서 파일을 창에 끌어다 놓아 열기.
+- 상태 표시줄에 인코딩과 줄바꿈 방식 표시.
+
+### Fixed
+- EUC-KR(CP949)·UTF-16 파일이 깨져 보이던 문제. 이제 알아서 읽고, UTF-8로 저장하기 전에 확인.
+- `⌘K` 링크 단축키가 동작하지 않던 문제.
+- 텍스트 문서와 소스 보기에서 CRLF 줄바꿈이 LF로 바뀌던 문제.
+- 설치 파일에 LICENSE·NOTICE가 빠져 있던 문제.
+
 ## [0.1.0] - 2026-10-29
 
 첫 공개 버전입니다.
@@ -18,5 +37,6 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/chojema/chojema-editor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/chojema/chojema-editor/releases/tag/v0.1.0

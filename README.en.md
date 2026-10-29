@@ -20,9 +20,30 @@ The builds are not code-signed, so your system may warn you the first time you o
 
 | Document | Editing |
 |---|---|
-| `.txt` and others | CodeMirror text editor (line numbers, find, line wrapping) |
-| `.md` | TipTap WYSIWYG + source view. Tables, task lists, math (KaTeX), Mermaid diagrams, footnotes, `/` command menu |
-| `.html` | TipTap WYSIWYG + source view. Font, size, color, alignment, sub/superscript, tables, images, links |
+| `.txt` and others | CodeMirror text editor (line numbers, find & replace, line wrapping) |
+| `.md` | WYSIWYG editing. Tables, task lists, math (KaTeX), Mermaid diagrams, footnotes, code syntax colors, `/` command menu, frontmatter editing |
+| `.html` | WYSIWYG editing. Font, size, color, alignment, sub/superscript, tables, images, links, code syntax colors |
+
+### Views (Markdown and HTML)
+
+Switch with the buttons at the right of the toolbar or the shortcuts.
+
+| View | Shortcut | What you get |
+|---|---|---|
+| Visual | `⌘1` | WYSIWYG editing only |
+| Side by side | `⌘2` | Source on the left, visual on the right. **Both are editable** and each follows the other after a short pause. Scrolling is linked; drag the divider to resize |
+| Source | `⌘3` | Source code only |
+
+For Markdown, a visual edit in the side-by-side view rewrites only the edited block in the source; every other line stays as written.
+
+### More
+
+- **Outline** (`⇧⌘O`): list of headings; click one to jump there
+- **Find & replace** (`⌘F`, `⌥⌘F`): match case, replace, replace all
+- **Export** (File → Export): save as HTML (one file with images embedded), save as PDF, copy as formatted text (for mail and blogs), print (`⌘P`)
+- **Legacy Korean files**: EUC-KR (CP949) and UTF-16 files open correctly; the status bar shows the encoding and line endings (LF/CRLF). Files are saved as UTF-8, with a confirmation the first time
+- **Drag and drop**: drop a `.md`, `.html` or `.txt` file on the window to open it
+- **Links** (`⌘K`), **themes** (View → Theme: system / light / dark)
 
 ### How the original text is preserved
 

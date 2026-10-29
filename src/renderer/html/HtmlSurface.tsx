@@ -5,8 +5,11 @@ import { dirOf, resolveImageSrc, setImageBaseDir } from '../editor/localImage'
 import { TableMenu } from '../components/TableMenu'
 import { Toolbar } from '../components/Toolbar'
 import { FindBar } from '../components/FindBar'
+import { OutlinePane } from '../components/OutlinePane'
+import { useOutlinePref } from '../components/useOutlinePref'
 import { CodeEditor, type CodeEditorHandle } from '../text/CodeEditor'
 import { statsOf, type SurfaceHandle, type SurfaceProps } from '../surface'
+import { Panes, useViewModes } from '../views'
 import { t } from '../i18n/locale'
 import { buildHtmlExtensions } from './htmlExtensions'
 import {
@@ -67,10 +70,17 @@ interface Original {
   doc: PmNode
 }
 
+/** the parts of a document that decide its styling: the head plus any <style>/<link> in the body */
+function styleKey(envelope: HtmlEnvelope): string {
+  const inBody = envelope.body.match(/<style\b[\s\S]*?<\/style>|<link\b[^>]*>/gi) ?? []
+  return `${envelope.prefix}\n${inBody.join('\n')}`
+}
+
 /**
- * HTML visual editor. Only the inside of <body> is edited; the head and the
- * body tag are kept verbatim, and the document's stylesheets are applied to
- * the canvas so what you edit is what the browser shows.
+ * HTML visual editor with source and side-by-side views. Only the inside of
+ * <body> is edited; the head and the body tag are kept verbatim, and the
+ * document's stylesheets are applied to the canvas so what you edit is what
+ * the browser shows.
  */
 export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function HtmlSurface(
   { initialContent, path, wrap, zoom, onDirty, onStats, onSave },
@@ -87,18 +97,17 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
   onStatsRef.current = onStats
 
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [sourceMode, setSourceMode] = useState(false)
-  const [sourceSeed, setSourceSeed] = useState('')
-  const sourceRef = useRef<CodeEditorHandle>(null)
-  const [findOpen, setFindOpen] = useState(false)
+  const [find, setFind] = useState<{ replace: boolean } | null>(null)
+  const [outlineOpen, setOutlineOpen] = useOutlinePref()
   const [rawEdit, setRawEdit] = useState<RawHtmlEditDetail | null>(null)
 
   setImageBaseDir(path ? dirOf(path) : null)
 
   const extensions = useMemo(() => buildHtmlExtensions(), [])
 
+  const bodyAttrsKey = JSON.stringify(envelope.bodyAttrs)
   const canvasAttributes = useMemo(() => {
-    const { class: bodyClass, style, ...rest } = envelope.bodyAttrs
+    const { class: bodyClass, style, ...rest } = JSON.parse(bodyAttrsKey) as Record<string, string>
     const keep = Object.fromEntries(Object.entries(rest).filter(([name]) => !/^on/i.test(name)))
     return {
       ...keep,
@@ -106,8 +115,9 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
       ...(style ? { style } : {}),
       spellcheck: 'false',
     }
-  }, [envelope.bodyAttrs])
+  }, [bodyAttrsKey])
 
+  const editorUpdateRef = useRef<() => void>(() => {})
   const editor = useEditor({
     extensions,
     content: '',
@@ -116,6 +126,7 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
     onUpdate: ({ editor: updated }) => {
       onDirtyRef.current()
       onStatsRef.current(statsOf(updated.getText()))
+      editorUpdateRef.current()
     },
   })
 
@@ -124,39 +135,17 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
   }, [editor, canvasAttributes])
 
   const load = useCallback(
-    (raw: string) => {
+    (raw: string, undoable: boolean) => {
       if (!editor) return
       const next = parseHtmlDocument(raw)
       setEnvelope(next)
       envelopeRef.current = next
-      editor
-        .chain()
-        .setMeta('addToHistory', false)
-        .setContent(next.body, { emitUpdate: false })
-        .run()
+      editor.chain().setMeta('addToHistory', undoable).setContent(next.body, { emitUpdate: false }).run()
       originalRef.current = { raw, doc: editor.state.doc }
       onStatsRef.current(statsOf(editor.getText()))
     },
     [editor],
   )
-
-  useEffect(() => {
-    // an untitled document starts from the template, which is not an edit
-    load(startText)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [load])
-
-  // the document's stylesheets follow the head (and any inline <style> in the body)
-  const [documentCss, setDocumentCss] = useState('')
-  useEffect(() => {
-    let alive = true
-    void buildDocumentCss(`${envelope.prefix}${envelope.body}`, path).then((css) => {
-      if (alive) setDocumentCss(css)
-    })
-    return () => {
-      alive = false
-    }
-  }, [envelope.prefix, envelope.body, path])
 
   const serialize = useCallback((): string => {
     if (!editor) return startText
@@ -165,18 +154,29 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
     return serializeHtmlDocument(envelopeRef.current, cleanSerializedHtml(editor.getHTML(), BARE_ATTR))
   }, [editor, startText])
 
-  const toggleSource = useCallback(() => {
-    if (!sourceMode) {
-      setSourceSeed(serialize())
-      setFindOpen(false)
-      setSourceMode(true)
-      return
+  const views = useViewModes({ prefKey: 'html', serialize, load, onDirty, onStats })
+  editorUpdateRef.current = views.onEditorUpdate
+
+  useEffect(() => {
+    if (!editor) return
+    // an untitled document starts from the template, which is not an edit
+    load(startText, false)
+    views.reseed()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load])
+
+  // the document's stylesheets follow the head (and any inline <style> in the body)
+  const stylesKey = styleKey(envelope)
+  const [documentCss, setDocumentCss] = useState('')
+  useEffect(() => {
+    let alive = true
+    void buildDocumentCss(stylesKey, path).then((css) => {
+      if (alive) setDocumentCss(css)
+    })
+    return () => {
+      alive = false
     }
-    const text = sourceRef.current?.getValue() ?? sourceSeed
-    if (text !== sourceSeed) load(text)
-    setSourceMode(false)
-    requestAnimationFrame(() => editor?.commands.focus())
-  }, [sourceMode, sourceSeed, serialize, load, editor])
+  }, [stylesKey, path])
 
   const insertImage = useCallback(() => {
     void (async () => {
@@ -211,19 +211,34 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
   useImperativeHandle(
     ref,
     () => ({
-      getContent: () => (sourceMode ? (sourceRef.current?.getValue() ?? sourceSeed) : serialize()),
+      getContent: views.getContent,
       markSaved(content) {
-        if (sourceMode || !editor) return
+        if (views.mode === 'source' || !editor) return
+        views.settle()
         originalRef.current = { raw: content, doc: editor.state.doc }
       },
-      toggleSource,
-      openFind() {
-        if (sourceMode) sourceRef.current?.openFind()
-        else setFindOpen(true)
+      setMode: views.setMode,
+      toggleSource: () => views.setMode(views.mode === 'source' ? 'visual' : 'source'),
+      openFind(withReplace) {
+        if (views.mode === 'source' || (views.mode === 'split' && views.lastPaneRef.current === 'source')) {
+          views.sourceRef.current?.openFind()
+        } else setFind({ replace: withReplace })
+      },
+      toggleOutline: () => setOutlineOpen(!outlineOpen),
+      async exportPage() {
+        // the page is the document itself; its relative links resolve against its folder
+        return { html: views.getContent(), baseDir: path ? dirOf(path) : null }
+      },
+      async richCopy() {
+        views.settle()
+        const html = editor ? cleanSerializedHtml(editor.getHTML(), BARE_ATTR) : ''
+        return { html, text: editor?.getText({ blockSeparator: '\n\n' }) ?? '' }
       },
     }),
-    [sourceMode, sourceSeed, serialize, toggleSource, editor],
+    [views, editor, outlineOpen, setOutlineOpen, path],
   )
+
+  const showOutline = outlineOpen && views.mode !== 'source' && editor
 
   return (
     <div className="surface">
@@ -231,33 +246,32 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
       <Toolbar
         editor={editor}
         kind="html"
-        sourceMode={sourceMode}
-        onToggleSource={toggleSource}
+        mode={views.mode}
+        onMode={views.setMode}
+        outlineOpen={outlineOpen}
+        onToggleOutline={() => setOutlineOpen(!outlineOpen)}
         onSave={onSave}
         onInsertImage={insertImage}
       />
-      {findOpen && editor && !sourceMode && <FindBar editor={editor} onClose={() => setFindOpen(false)} />}
-      {sourceMode && (
-        <div className="surface-source">
-          <div className="source-note">{t('sourceParseNote')}</div>
-          <CodeEditor
-            ref={sourceRef}
-            initialValue={sourceSeed}
-            language="html"
-            wrap={wrap}
-            onChange={(text) => {
-              onDirty()
-              onStats(statsOf(text))
-            }}
-          />
-        </div>
+      {find && editor && views.mode !== 'source' && (
+        <FindBar editor={editor} withReplace={find.replace} onClose={() => setFind(null)} />
       )}
-      <div className="surface-scroll html-scroll" ref={scrollRef} hidden={sourceMode}>
-        <div className="html-page" style={{ zoom: zoom / 100 }}>
-          <EditorContent editor={editor} />
-        </div>
+      <div className="surface-body">
+        {showOutline && <OutlinePane editor={editor} />}
+        <Panes
+          views={views}
+          prefKey="html"
+          language="html"
+          wrap={wrap}
+          visualScrollRef={scrollRef}
+          visualClassName="html-scroll"
+        >
+          <div className="html-page" style={{ zoom: zoom / 100 }}>
+            <EditorContent editor={editor} />
+          </div>
+        </Panes>
       </div>
-      {!sourceMode && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} />}
+      {views.mode !== 'source' && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} />}
       {rawEdit && (
         <RawHtmlDialog html={rawEdit.html} onApply={applyRawEdit} onCancel={() => setRawEdit(null)} />
       )}

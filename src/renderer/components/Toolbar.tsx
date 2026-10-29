@@ -5,6 +5,8 @@ import { useEditorState } from '@tiptap/react'
 import { t } from '../i18n/locale'
 import type { StringKey } from '../i18n/locale'
 import { Dropdown } from './dropdown'
+import { OPEN_LINK_EVENT } from '../editor/blockKeymap'
+import type { ViewMode } from '../views'
 import {
   IconAlignCenter,
   IconAlignJustify,
@@ -18,6 +20,7 @@ import {
   IconInlineCode,
   IconLink,
   IconNumbered,
+  IconOutlineView,
   IconPicture,
   IconQuoteMark,
   IconRedo,
@@ -59,11 +62,19 @@ const FONT_SIZES = ['', '12px', '14px', '16px', '18px', '20px', '24px', '28px', 
 interface Props {
   editor: Editor | null
   kind: ToolbarKind
-  sourceMode: boolean
-  onToggleSource: () => void
+  mode: ViewMode
+  onMode: (mode: ViewMode) => void
+  outlineOpen: boolean
+  onToggleOutline: () => void
   onSave: () => void
   onInsertImage: () => void
 }
+
+const MODES: { mode: ViewMode; label: StringKey; tip: StringKey }[] = [
+  { mode: 'visual', label: 'viewVisual', tip: 'viewVisualTip' },
+  { mode: 'split', label: 'viewSplit', tip: 'viewSplitTip' },
+  { mode: 'source', label: 'viewSource', tip: 'viewSourceTip' },
+]
 
 function Btn({
   label,
@@ -104,6 +115,17 @@ function LinkButton({ editor, disabled }: { editor: Editor; disabled: boolean })
   const [href, setHref] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapRef = useRef<HTMLSpanElement>(null)
+
+  // ⌘K in the editor asks for this popover
+  useEffect(() => {
+    const openFromShortcut = () => {
+      if (disabled) return
+      setHref(String(editor.getAttributes('link').href ?? ''))
+      setOpen(true)
+    }
+    window.addEventListener(OPEN_LINK_EVENT, openFromShortcut)
+    return () => window.removeEventListener(OPEN_LINK_EVENT, openFromShortcut)
+  }, [editor, disabled])
 
   useEffect(() => {
     if (!open) return
@@ -208,7 +230,16 @@ function ColorButton({
 }
 
 /** the formatting row above the Markdown and HTML visual editors */
-export function Toolbar({ editor, kind, sourceMode, onToggleSource, onSave, onInsertImage }: Props) {
+export function Toolbar({
+  editor,
+  kind,
+  mode,
+  onMode,
+  outlineOpen,
+  onToggleOutline,
+  onSave,
+  onInsertImage,
+}: Props) {
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => {
@@ -244,7 +275,7 @@ export function Toolbar({ editor, kind, sourceMode, onToggleSource, onSave, onIn
     },
   })
 
-  const off = sourceMode || !editor || !state
+  const off = mode === 'source' || !editor || !state
   const html = kind === 'html'
   const chain = () => editor!.chain().focus()
 
@@ -404,15 +435,24 @@ export function Toolbar({ editor, kind, sourceMode, onToggleSource, onSave, onIn
         <IconHr size={18} />
       </Btn>
       <span className="tb-spacer" />
-      <button
-        type="button"
-        className={`tb-mode${sourceMode ? ' is-active' : ''}`}
-        title={t('toggleSource')}
-        onClick={onToggleSource}
-      >
-        <IconSourceCode size={16} />
-        <span>{sourceMode ? t('viewVisual') : t('viewSource')}</span>
-      </button>
+      <Btn label={t('outlineTip')} active={outlineOpen} disabled={mode === 'source'} onClick={onToggleOutline}>
+        <IconOutlineView size={18} />
+      </Btn>
+      <div className="tb-modes" role="group" aria-label={t('viewMode')}>
+        {MODES.map((m) => (
+          <button
+            key={m.mode}
+            type="button"
+            className={`tb-mode${mode === m.mode ? ' is-active' : ''}`}
+            title={t(m.tip)}
+            aria-pressed={mode === m.mode}
+            onClick={() => onMode(m.mode)}
+          >
+            {m.mode === 'source' && <IconSourceCode size={15} />}
+            <span>{t(m.label)}</span>
+          </button>
+        ))}
+      </div>
     </div>
   )
 }

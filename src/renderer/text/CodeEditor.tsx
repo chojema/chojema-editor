@@ -29,9 +29,12 @@ export type CodeLanguage = 'text' | 'markdown' | 'html'
 
 export interface CodeEditorHandle {
   getValue(): string
+  /** replace the text, touching only the changed middle so the view does not jump */
   setValue(text: string): void
   focus(): void
+  hasFocus(): boolean
   openFind(): void
+  scrollElement(): HTMLElement | null
 }
 
 interface Props {
@@ -41,6 +44,7 @@ interface Props {
   placeholder?: string
   onChange?: (text: string) => void
   onStats?: (stats: { lines: number; chars: number }) => void
+  onFocus?: () => void
 }
 
 function languageExtension(language: CodeLanguage): Extension {
@@ -71,7 +75,7 @@ const theme = EditorView.theme({
 
 /** CodeMirror 6 host used for plain text files and for the Markdown/HTML source views */
 export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor(
-  { initialValue, language, wrap, placeholder, onChange, onStats },
+  { initialValue, language, wrap, placeholder, onChange, onStats, onFocus },
   ref,
 ) {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -81,6 +85,11 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
   const onStatsRef = useRef(onStats)
   onChangeRef.current = onChange
   onStatsRef.current = onStats
+  const onFocusRef = useRef(onFocus)
+  onFocusRef.current = onFocus
+  // CodeMirror keeps "\n" internally; a CRLF file gets its line endings back on the way out
+  const crlfRef = useRef(initialValue.includes('\r\n'))
+  const withEol = (text: string) => (crlfRef.current ? text.replace(/\n/g, '\r\n') : text)
 
   useEffect(() => {
     const report = (state: EditorState) =>
@@ -110,7 +119,12 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
           report(update.state)
           // a programmatic setValue is not a user edit
           if (update.transactions.some((tr) => tr.annotation(programmatic))) return
-          onChangeRef.current?.(update.state.doc.toString())
+          onChangeRef.current?.(withEol(update.state.doc.toString()))
+        }),
+        EditorView.domEventHandlers({
+          focus: () => {
+            onFocusRef.current?.()
+          },
         }),
       ],
     })
@@ -133,16 +147,30 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
   }, [wrap])
 
   useImperativeHandle(ref, () => ({
-    getValue: () => viewRef.current?.state.doc.toString() ?? '',
+    getValue: () => withEol(viewRef.current?.state.doc.toString() ?? ''),
     setValue(text) {
       const view = viewRef.current
       if (!view) return
+      crlfRef.current = text.includes('\r\n')
+      const next = text.replace(/\r\n/g, '\n')
+      const current = view.state.doc.toString()
+      if (next === current) return
+      let start = 0
+      while (start < current.length && start < next.length && current[start] === next[start]) start++
+      let endCur = current.length
+      let endNext = next.length
+      while (endCur > start && endNext > start && current[endCur - 1] === next[endNext - 1]) {
+        endCur--
+        endNext--
+      }
       view.dispatch({
-        changes: { from: 0, to: view.state.doc.length, insert: text },
+        changes: { from: start, to: endCur, insert: next.slice(start, endNext) },
         annotations: programmatic.of(true),
       })
     },
     focus: () => viewRef.current?.focus(),
+    hasFocus: () => viewRef.current?.hasFocus ?? false,
+    scrollElement: () => viewRef.current?.scrollDOM ?? null,
     openFind() {
       const view = viewRef.current
       if (view) openSearchPanel(view)

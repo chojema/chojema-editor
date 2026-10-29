@@ -1,5 +1,7 @@
 /** Contract between the main process, the preload bridge and the renderer. */
 
+import type { TextEncoding } from './encoding'
+
 /** pasted / dropped images above this size are refused instead of copied into assets/ */
 export const MAX_PASTED_IMAGE_BYTES = 20 * 1024 * 1024
 
@@ -25,6 +27,8 @@ export interface InitialDoc {
   kind: DocKind
   /** file text as read from disk ('' for an untitled document) */
   content: string
+  /** encoding the file was read in; saving always writes UTF-8 */
+  encoding: TextEncoding
 }
 
 export interface SaveResult {
@@ -32,6 +36,15 @@ export interface SaveResult {
   /** the path written; changes when Save As picked a new one */
   path?: string
   error?: string
+  /** encoding of the file after the write (always UTF-8) */
+  encoding?: TextEncoding
+}
+
+/** a finished document to export: a full HTML page, plus where its relative links point */
+export interface ExportRequest {
+  html: string
+  /** folder relative URLs resolve against (the document's folder), or null */
+  baseDir: string | null
 }
 
 /** menu commands the main process forwards to the focused window */
@@ -39,11 +52,20 @@ export type MenuCommand =
   | 'save'
   | 'saveAs'
   | 'toggleSource'
+  | 'viewVisual'
+  | 'viewSplit'
+  | 'viewSource'
+  | 'toggleOutline'
   | 'find'
+  | 'replace'
   | 'zoomIn'
   | 'zoomOut'
   | 'zoomReset'
   | 'toggleWrap'
+  | 'exportHtml'
+  | 'exportPdf'
+  | 'print'
+  | 'copyRich'
 
 export interface EditorApi {
   getInitialDoc(): Promise<InitialDoc>
@@ -57,6 +79,16 @@ export interface EditorApi {
   pickImage(): Promise<string | null>
   /** read a stylesheet or other text asset next to an HTML document */
   readAsset(relPath: string): Promise<string | null>
+  /** open files dropped on a window (each in its own window, or this one when it is empty) */
+  openPaths(paths: string[]): void
+  /** filesystem path of a dropped File */
+  pathForFile(file: File): string
+  /** save a standalone HTML page next to wherever the user picks */
+  exportHtml(request: ExportRequest): Promise<SaveResult>
+  exportPdf(request: ExportRequest): Promise<SaveResult>
+  print(request: ExportRequest): Promise<void>
+  /** put formatted text on the clipboard (HTML with a plain-text fallback) */
+  copyRich(html: string, text: string): void
   onMenuCommand(handler: (command: MenuCommand) => void): () => void
   /** main asks the renderer to save before the window closes; reply with the outcome */
   onSaveBeforeClose(handler: () => Promise<boolean>): () => void
@@ -71,6 +103,11 @@ export const IPC = {
   saveImage: 'doc:save-image',
   pickImage: 'doc:pick-image',
   readAsset: 'doc:read-asset',
+  openPaths: 'doc:open-paths',
+  exportHtml: 'export:html',
+  exportPdf: 'export:pdf',
+  print: 'export:print',
+  copyRich: 'clipboard:rich',
   menuCommand: 'menu:command',
   saveBeforeClose: 'doc:save-before-close',
   saveBeforeCloseReply: 'doc:save-before-close-reply',

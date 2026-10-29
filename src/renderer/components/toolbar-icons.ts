@@ -9,6 +9,7 @@ export {
   IconHighlight,
   IconLink,
   IconNumbered,
+  IconOutlineView,
   IconPicture,
   IconRedo,
   IconSave,

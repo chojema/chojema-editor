@@ -1,7 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, net, protocol, shell } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron'
 import type { MenuItemConstructorOptions, WebContents } from 'electron'
-import { existsSync } from 'node:fs'
-import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { existsSync, readFileSync } from 'node:fs'
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
@@ -9,10 +10,12 @@ import {
   docKindForPath,
   IPC,
   type DocKind,
+  type ExportRequest,
   type InitialDoc,
   type MenuCommand,
   type SaveResult,
 } from '../shared/ipc'
+import { decodeText, type TextEncoding } from '../shared/encoding'
 
 const APP_NAME = 'Chojema Editor'
 
@@ -29,6 +32,8 @@ interface WindowDoc {
   dirty: boolean
   /** set once the user confirmed (or saved) so the next close goes through */
   closing: boolean
+  /** encoding the file was read in; the first save converts it to UTF-8 */
+  encoding: TextEncoding
 }
 
 const docs = new Map<number, WindowDoc>()
@@ -133,7 +138,7 @@ function createWindow(path: string | null, kind: DocKind = docKindForPath(path))
       spellcheck: false,
     },
   })
-  docs.set(win.id, { path, kind, dirty: false, closing: false })
+  docs.set(win.id, { path, kind, dirty: false, closing: false, encoding: 'UTF-8' })
   refreshTitle(win)
 
   win.once('ready-to-show', () => win.show())
@@ -218,6 +223,18 @@ async function writeDoc(
   path: string,
   content: string,
 ): Promise<SaveResult> {
+  if (doc.encoding !== 'UTF-8') {
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'question',
+      buttons: ['UTF-8로 저장', '취소'],
+      defaultId: 0,
+      cancelId: 1,
+      message: `이 파일은 ${doc.encoding} 방식으로 저장되어 있습니다.`,
+      detail:
+        'Chojema Editor는 UTF-8로 저장합니다. 이 파일을 옛 방식으로만 읽는 프로그램에서는 한글이 깨져 보일 수 있습니다.',
+    })
+    if (response !== 0) return { ok: false }
+  }
   try {
     await writeFile(path, content, 'utf8')
   } catch (error) {
@@ -225,11 +242,64 @@ async function writeDoc(
   }
   doc.path = path
   doc.dirty = false
+  doc.encoding = 'UTF-8'
   // Save As into another known format: the renderer reloads onto that surface
   if (/\.(md|markdown|html?|txt)$/i.test(path)) doc.kind = docKindForPath(path)
   refreshTitle(win)
   app.addRecentDocument(path)
-  return { ok: true, path }
+  return { ok: true, path, encoding: 'UTF-8' }
+}
+
+function exportName(doc: WindowDoc, ext: string): string {
+  const base = doc.path ? basename(doc.path).replace(/\.[^.]+$/, '') : untitledName(doc.kind).replace(/\.[^.]+$/, '')
+  return join(doc.path ? dirname(doc.path) : app.getPath('documents'), `${base}.${ext}`)
+}
+
+/** relative links in the page resolve against the document folder */
+function withBase(html: string, baseDir: string | null): string {
+  if (!baseDir) return html
+  const tag = `<base href="${pathToFileURL(baseDir.endsWith(sep) ? baseDir : baseDir + sep).href}">`
+  return /<head\b[^>]*>/i.test(html) ? html.replace(/<head\b[^>]*>/i, (m) => `${m}\n${tag}`) : `${tag}\n${html}`
+}
+
+/**
+ * Load an export page into a hidden window for printing. Scripts are off: the
+ * page is only laid out, never run.
+ */
+async function withExportWindow<T>(request: ExportRequest, use: (win: BrowserWindow) => Promise<T>): Promise<T> {
+  const file = join(tmpdir(), `chojema-export-${process.pid}-${Date.now()}.html`)
+  await writeFile(file, withBase(request.html, request.baseDir), 'utf8')
+  const win = new BrowserWindow({
+    show: false,
+    webPreferences: { javascript: false, sandbox: true, contextIsolation: true },
+  })
+  try {
+    await win.loadFile(file)
+    return await use(win)
+  } finally {
+    if (!win.isDestroyed()) win.destroy()
+    await rm(file, { force: true })
+  }
+}
+
+// ---- appearance preference (light / dark / follow the system) ----
+
+type ThemeSource = 'system' | 'light' | 'dark'
+const PREFS_FILE = () => join(app.getPath('userData'), 'preferences.json')
+
+function readTheme(): ThemeSource {
+  try {
+    if (!existsSync(PREFS_FILE())) return 'system'
+    const theme = JSON.parse(readFileSync(PREFS_FILE(), 'utf8')).theme
+    return theme === 'light' || theme === 'dark' ? theme : 'system'
+  } catch {
+    return 'system'
+  }
+}
+
+function setTheme(theme: ThemeSource): void {
+  nativeTheme.themeSource = theme
+  void writeFile(PREFS_FILE(), JSON.stringify({ theme }), 'utf8').catch(() => {})
 }
 
 async function openWithDialog(): Promise<void> {
@@ -284,6 +354,16 @@ function buildMenu(): void {
         { label: '저장', accelerator: 'CmdOrCtrl+S', click: () => sendMenu('save') },
         { label: '다른 이름으로 저장…', accelerator: 'CmdOrCtrl+Shift+S', click: () => sendMenu('saveAs') },
         { type: 'separator' },
+        {
+          label: '내보내기',
+          submenu: [
+            { label: 'HTML로 저장…', click: () => sendMenu('exportHtml') },
+            { label: 'PDF로 저장…', click: () => sendMenu('exportPdf') },
+            { label: '서식 있는 텍스트로 복사', click: () => sendMenu('copyRich') },
+          ],
+        },
+        { label: '인쇄…', accelerator: 'CmdOrCtrl+P', click: () => sendMenu('print') },
+        { type: 'separator' },
         isMac ? { role: 'close', label: '창 닫기' } : { role: 'quit', label: '끝내기' },
       ],
     },
@@ -300,17 +380,33 @@ function buildMenu(): void {
         { role: 'selectAll', label: '모두 선택' },
         { type: 'separator' },
         { label: '찾기…', accelerator: 'CmdOrCtrl+F', click: () => sendMenu('find') },
+        { label: '찾아 바꾸기…', accelerator: 'CmdOrCtrl+Alt+F', click: () => sendMenu('replace') },
       ],
     },
     {
       label: '보기',
       submenu: [
-        { label: '소스 보기 전환', accelerator: 'CmdOrCtrl+/', click: () => sendMenu('toggleSource') },
+        { label: '편집 화면', accelerator: 'CmdOrCtrl+1', click: () => sendMenu('viewVisual') },
+        { label: '나란히 보기', accelerator: 'CmdOrCtrl+2', click: () => sendMenu('viewSplit') },
+        { label: '소스 보기', accelerator: 'CmdOrCtrl+3', click: () => sendMenu('viewSource') },
+        { label: '편집 화면 ↔ 소스 전환', accelerator: 'CmdOrCtrl+/', click: () => sendMenu('toggleSource') },
+        { type: 'separator' },
+        { label: '개요', accelerator: 'CmdOrCtrl+Shift+O', click: () => sendMenu('toggleOutline') },
         { label: '자동 줄 바꿈 전환', accelerator: 'Alt+Z', click: () => sendMenu('toggleWrap') },
         { type: 'separator' },
         { label: '확대', accelerator: 'CmdOrCtrl+=', click: () => sendMenu('zoomIn') },
         { label: '축소', accelerator: 'CmdOrCtrl+-', click: () => sendMenu('zoomOut') },
         { label: '원래 크기', accelerator: 'CmdOrCtrl+0', click: () => sendMenu('zoomReset') },
+        { type: 'separator' },
+        {
+          label: '테마',
+          submenu: (['system', 'light', 'dark'] as const).map((theme) => ({
+            label: { system: '시스템 설정 따르기', light: '밝게', dark: '어둡게' }[theme],
+            type: 'radio' as const,
+            checked: nativeTheme.themeSource === theme,
+            click: () => setTheme(theme),
+          })),
+        },
         { type: 'separator' },
         { role: 'togglefullscreen', label: '전체 화면' },
         ...(app.isPackaged ? [] : [{ role: 'toggleDevTools' as const }, { role: 'reload' as const }]),
@@ -335,16 +431,18 @@ function buildMenu(): void {
 function registerIpc(): void {
   ipcMain.handle(IPC.getInitialDoc, async (event): Promise<InitialDoc> => {
     const found = docFor(event.sender)
-    if (!found) return { path: null, kind: 'text', content: '' }
+    if (!found) return { path: null, kind: 'text', content: '', encoding: 'UTF-8' }
     const { doc } = found
-    if (!doc.path) return { path: null, kind: doc.kind, content: '' }
+    if (!doc.path) return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8' }
     try {
-      return { path: doc.path, kind: doc.kind, content: await readFile(doc.path, 'utf8') }
+      const { text, encoding } = decodeText(await readFile(doc.path))
+      doc.encoding = encoding
+      return { path: doc.path, kind: doc.kind, content: text, encoding }
     } catch (error) {
       dialog.showErrorBox('파일을 열 수 없습니다', `${doc.path}\n\n${String(error)}`)
       doc.path = null
       refreshTitle(found.win)
-      return { path: null, kind: doc.kind, content: '' }
+      return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8' }
     }
   })
 
@@ -403,6 +501,57 @@ function registerIpc(): void {
     return `assets/${basename(picked)}`
   })
 
+  ipcMain.on(IPC.openPaths, (_event, paths: unknown) => {
+    if (!Array.isArray(paths)) return
+    for (const path of paths) if (typeof path === 'string' && existsSync(path)) openPath(path)
+  })
+
+  ipcMain.handle(IPC.exportHtml, async (event, request: ExportRequest): Promise<SaveResult> => {
+    const found = docFor(event.sender)
+    if (!found) return { ok: false }
+    const { canceled, filePath } = await dialog.showSaveDialog(found.win, {
+      defaultPath: exportName(found.doc, 'html'),
+      filters: [{ name: 'HTML', extensions: ['html'] }],
+    })
+    if (canceled || !filePath) return { ok: false }
+    try {
+      await writeFile(filePath, request.html, 'utf8')
+      return { ok: true, path: filePath }
+    } catch (error) {
+      return { ok: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle(IPC.exportPdf, async (event, request: ExportRequest): Promise<SaveResult> => {
+    const found = docFor(event.sender)
+    if (!found) return { ok: false }
+    const { canceled, filePath } = await dialog.showSaveDialog(found.win, {
+      defaultPath: exportName(found.doc, 'pdf'),
+      filters: [{ name: 'PDF', extensions: ['pdf'] }],
+    })
+    if (canceled || !filePath) return { ok: false }
+    try {
+      const pdf = await withExportWindow(request, (win) =>
+        win.webContents.printToPDF({ printBackground: true, pageSize: 'A4' }),
+      )
+      await writeFile(filePath, pdf)
+      return { ok: true, path: filePath }
+    } catch (error) {
+      return { ok: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle(IPC.print, async (_event, request: ExportRequest) => {
+    await withExportWindow(
+      request,
+      (win) => new Promise<void>((done) => win.webContents.print({ printBackground: true }, () => done())),
+    )
+  })
+
+  ipcMain.on(IPC.copyRich, (_event, html: string, text: string) => {
+    clipboard.write({ html: String(html), text: String(text) })
+  })
+
   ipcMain.handle(IPC.readAsset, async (event, relPath: string) => {
     const found = docFor(event.sender)
     if (!found?.doc.path || typeof relPath !== 'string') return null
@@ -441,6 +590,7 @@ if (!singleInstance) {
 
   void app.whenReady().then(() => {
     app.setName(APP_NAME)
+    nativeTheme.themeSource = readTheme()
     app.setAboutPanelOptions({
       applicationName: APP_NAME,
       applicationVersion: app.getVersion(),

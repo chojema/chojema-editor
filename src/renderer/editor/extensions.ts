@@ -3,7 +3,8 @@ import StarterKit from '@tiptap/starter-kit'
 import { Table, TableKit } from '@tiptap/extension-table'
 import { OrderedList, TaskList } from '@tiptap/extension-list'
 import { LooseBulletList, LooseOrderedList, LooseTaskList } from './looseLists'
-import { CodeBlock } from '@tiptap/extension-code-block'
+import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
+import { lowlight } from './lowlight'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { Placeholder } from '@tiptap/extensions'
 import { CodeBlockView } from './CodeBlockView'
@@ -79,7 +80,7 @@ export function buildExtensions(options: BuildExtensionsOptions): AnyExtension[]
     LooseOrderedList.extend({
       markdownTokenizer: boundOrderedList(OrderedList.config.markdownTokenizer!),
     }),
-    CodeBlock.extend({
+    CodeBlockLowlight.extend({
       addNodeView() {
         return ReactNodeViewRenderer(CodeBlockView)
       },
@@ -102,7 +103,7 @@ export function buildExtensions(options: BuildExtensionsOptions): AnyExtension[]
           String(node.attrs?.language ?? ''),
           node.content ? h.renderChildren(node.content) : null,
         ),
-    }),
+    }).configure({ lowlight, defaultLanguage: null }),
     SelectiveEscapeMarkdown,
     // column widths are not expressible in GFM tables — no resizable columns;
     // the wrapper div gives wide tables a horizontal scrollbar

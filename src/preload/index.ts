@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { IPC, type EditorApi, type MenuCommand } from '../shared/ipc'
 
 const api: EditorApi = {
@@ -9,6 +9,12 @@ const api: EditorApi = {
   saveImage: (input) => ipcRenderer.invoke(IPC.saveImage, input),
   pickImage: () => ipcRenderer.invoke(IPC.pickImage),
   readAsset: (relPath) => ipcRenderer.invoke(IPC.readAsset, relPath),
+  openPaths: (paths) => ipcRenderer.send(IPC.openPaths, paths),
+  pathForFile: (file) => webUtils.getPathForFile(file),
+  exportHtml: (request) => ipcRenderer.invoke(IPC.exportHtml, request),
+  exportPdf: (request) => ipcRenderer.invoke(IPC.exportPdf, request),
+  print: (request) => ipcRenderer.invoke(IPC.print, request),
+  copyRich: (html, text) => ipcRenderer.send(IPC.copyRich, html, text),
   onMenuCommand(handler) {
     const listener = (_event: Electron.IpcRendererEvent, command: MenuCommand) => handler(command)
     ipcRenderer.on(IPC.menuCommand, listener)

@@ -9,18 +9,28 @@ import { SlashMenu, type SlashMenuHandle } from '../components/SlashMenu'
 import { TableMenu } from '../components/TableMenu'
 import { Toolbar } from '../components/Toolbar'
 import { FindBar } from '../components/FindBar'
-import { CodeEditor, type CodeEditorHandle } from '../text/CodeEditor'
-import { parseDocText, stripLegacyFencedDivs, type DocEnvelope } from './docText'
+import { OutlinePane } from '../components/OutlinePane'
+import {
+  buildFrontmatterRaw,
+  frontmatterInner,
+  parseDocText,
+  stripLegacyFencedDivs,
+  type DocEnvelope,
+} from './docText'
 import { captureMarkdownSource, serializeMarkdown, type MarkdownSourceSnapshot } from './roundtripSerializer'
 import { buildSourceMap, spliceMarkdown, type SourceMap } from './sourceSplice'
 import { statsOf, type SurfaceHandle, type SurfaceProps } from '../surface'
+import { Panes, useViewModes } from '../views'
+import { useOutlinePref } from '../components/useOutlinePref'
+import { markdownPage, renderedMarkdownBody, titleFor } from '../exportPage'
 import { t } from '../i18n/locale'
 
 /**
- * Markdown visual editor (TipTap) with a source view. Saving keeps every
- * block the user did not touch byte-for-byte as it was on disk: the source
+ * Markdown visual editor (TipTap) with source and side-by-side views. Saving
+ * keeps every block the user did not touch byte-for-byte as it was: the source
  * map pairs blocks with their original text and only edited runs are
- * re-serialized.
+ * re-serialized. The same rule makes a visual edit in the split view rewrite
+ * only that block in the source pane.
  */
 export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function MarkdownSurface(
   { initialContent, path, wrap, zoom, onDirty, onStats, onSave },
@@ -39,10 +49,9 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
   const [slashState, setSlashState] = useState<SlashMenuState | null>(null)
   const slashMenuRef = useRef<SlashMenuHandle>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [sourceMode, setSourceMode] = useState(false)
-  const [sourceSeed, setSourceSeed] = useState('')
-  const sourceRef = useRef<CodeEditorHandle>(null)
-  const [findOpen, setFindOpen] = useState(false)
+  const [find, setFind] = useState<{ replace: boolean } | null>(null)
+  const [outlineOpen, setOutlineOpen] = useOutlinePref()
+  const [fmText, setFmText] = useState('')
 
   setImageBaseDir(path ? dirOf(path) : null)
 
@@ -67,44 +76,40 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
     })
   }, [insertImage])
 
+  const editorUpdateRef = useRef<() => void>(() => {})
   const editor = useEditor({
     extensions,
     content: '',
     autofocus: true,
     editorProps: { attributes: { class: 'doc-editor', spellcheck: 'false' } },
     onUpdate: ({ editor: updated, transaction }) => {
-      if (!transaction.getMeta('uiOnly')) onDirtyRef.current()
+      if (transaction.getMeta('uiOnly')) return
+      onDirtyRef.current()
       onStatsRef.current(statsOf(updated.getText()))
+      editorUpdateRef.current()
     },
   })
   const editorRef = useRef<Editor | null>(null)
   editorRef.current = editor
 
-  /** put file text on the canvas; the load itself is neither undoable nor an edit */
+  /** put file text on the canvas; the first load is neither undoable nor an edit */
   const load = useCallback(
-    (raw: string) => {
+    (raw: string, undoable: boolean) => {
       if (!editor) return
       const envelope = parseDocText(raw)
       envelopeRef.current = envelope
       const body = stripLegacyFencedDivs(envelope.body)
-      editor
-        .chain()
-        .setMeta('addToHistory', false)
-        .setContent(body, { contentType: 'markdown', emitUpdate: false })
-        .setTextSelection(1)
-        .run()
+      const chain = editor.chain().setMeta('addToHistory', undoable)
+      chain.setContent(body, { contentType: 'markdown', emitUpdate: false })
+      if (!undoable) chain.setTextSelection(1)
+      chain.run()
       sourceMapRef.current = buildSourceMap(editor, editor.state.doc, body)
       originalRef.current = captureMarkdownSource(raw, envelope, editor.state.doc)
+      setFmText(frontmatterInner(envelope.frontmatter))
       onStatsRef.current(statsOf(editor.getText()))
     },
     [editor],
   )
-
-  useEffect(() => {
-    load(initialContent)
-    // the initial text is loaded once per mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [load])
 
   const serialize = useCallback((): string => {
     if (!editor || !envelopeRef.current) return initialContent
@@ -117,72 +122,107 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
     )
   }, [editor, initialContent])
 
-  const toggleSource = useCallback(() => {
-    if (!sourceMode) {
-      setSourceSeed(serialize())
-      setFindOpen(false)
-      setSourceMode(true)
-      return
-    }
-    const text = sourceRef.current?.getValue() ?? sourceSeed
-    if (text !== sourceSeed) load(text)
-    setSourceMode(false)
-    requestAnimationFrame(() => editor?.commands.focus())
-  }, [sourceMode, sourceSeed, serialize, load, editor])
+  const views = useViewModes({ prefKey: 'markdown', serialize, load, onDirty, onStats })
+  editorUpdateRef.current = views.onEditorUpdate
+
+  useEffect(() => {
+    if (!editor) return
+    load(initialContent, false)
+    views.reseed()
+    // the initial text is loaded once per mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load])
+
+  /** frontmatter edits go straight into the envelope; the body is untouched */
+  const editFrontmatter = (inner: string) => {
+    setFmText(inner)
+    const envelope = envelopeRef.current
+    if (!envelope) return
+    envelopeRef.current = { ...envelope, frontmatter: buildFrontmatterRaw(inner) }
+    onDirty()
+    views.onEditorUpdate()
+  }
 
   useImperativeHandle(
     ref,
     () => ({
-      getContent: () => (sourceMode ? (sourceRef.current?.getValue() ?? sourceSeed) : serialize()),
+      getContent: views.getContent,
       markSaved(content) {
-        // in the source view the canvas is rebuilt from the text on the way back
-        if (sourceMode || !editor || !envelopeRef.current) return
+        if (views.mode === 'source' || !editor || !envelopeRef.current) return
+        views.settle()
         // the saved text is the new disk baseline the next save splices against
-        sourceMapRef.current = buildSourceMap(editor, editor.state.doc, parseDocText(content).body)
-        originalRef.current = captureMarkdownSource(content, envelopeRef.current, editor.state.doc)
+        const envelope = parseDocText(content)
+        envelopeRef.current = envelope
+        sourceMapRef.current = buildSourceMap(editor, editor.state.doc, envelope.body)
+        originalRef.current = captureMarkdownSource(content, envelope, editor.state.doc)
       },
-      toggleSource,
-      openFind() {
-        if (sourceMode) sourceRef.current?.openFind()
-        else setFindOpen(true)
+      setMode: views.setMode,
+      toggleSource: () => views.setMode(views.mode === 'source' ? 'visual' : 'source'),
+      openFind(withReplace) {
+        if (views.mode === 'source' || (views.mode === 'split' && views.lastPaneRef.current === 'source')) {
+          views.sourceRef.current?.openFind()
+        } else setFind({ replace: withReplace })
+      },
+      toggleOutline: () => setOutlineOpen(!outlineOpen),
+      async exportPage() {
+        views.settle()
+        const body = editor ? await renderedMarkdownBody(editor) : ''
+        return { html: markdownPage(body, titleFor(editor, path)), baseDir: path ? dirOf(path) : null }
+      },
+      async richCopy() {
+        views.settle()
+        const html = editor ? await renderedMarkdownBody(editor) : ''
+        return { html, text: editor?.getText({ blockSeparator: '\n\n' }) ?? '' }
       },
     }),
-    [sourceMode, sourceSeed, serialize, toggleSource, editor],
+    [views, editor, outlineOpen, setOutlineOpen, path],
   )
+
+  const showOutline = outlineOpen && views.mode !== 'source' && editor
 
   return (
     <div className="surface">
       <Toolbar
         editor={editor}
         kind="markdown"
-        sourceMode={sourceMode}
-        onToggleSource={toggleSource}
+        mode={views.mode}
+        onMode={views.setMode}
+        outlineOpen={outlineOpen}
+        onToggleOutline={() => setOutlineOpen(!outlineOpen)}
         onSave={onSave}
         onInsertImage={insertImage}
       />
-      {findOpen && editor && !sourceMode && <FindBar editor={editor} onClose={() => setFindOpen(false)} />}
-      {sourceMode && (
-        <div className="surface-source">
-          <div className="source-note">{t('sourceParseNote')}</div>
-          <CodeEditor
-            ref={sourceRef}
-            initialValue={sourceSeed}
-            language="markdown"
-            wrap={wrap}
-            onChange={(text) => {
-              onDirty()
-              onStats(statsOf(text))
-            }}
-          />
-        </div>
+      {find && editor && views.mode !== 'source' && (
+        <FindBar editor={editor} withReplace={find.replace} onClose={() => setFind(null)} />
       )}
-      <div className="surface-scroll" ref={scrollRef} hidden={sourceMode}>
-        <div className="doc-page" style={{ zoom: zoom / 100 }}>
-          <EditorContent editor={editor} />
-        </div>
+      <div className="surface-body">
+        {showOutline && <OutlinePane editor={editor} />}
+        <Panes
+          views={views}
+          prefKey="markdown"
+          language="markdown"
+          wrap={wrap}
+          visualScrollRef={scrollRef}
+        >
+          <div className="doc-page" style={{ zoom: zoom / 100 }}>
+            {fmText && (
+              <details className="frontmatter" open>
+                <summary title={t('frontmatterHint')}>{t('frontmatter')}</summary>
+                <textarea
+                  className="frontmatter-input"
+                  value={fmText}
+                  spellCheck={false}
+                  rows={Math.min(12, fmText.split('\n').length + 1)}
+                  onChange={(event) => editFrontmatter(event.target.value)}
+                />
+              </details>
+            )}
+            <EditorContent editor={editor} />
+          </div>
+        </Panes>
       </div>
       <SlashMenu ref={slashMenuRef} state={slashState} onDismiss={() => setSlashState(null)} />
-      {!sourceMode && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} />}
+      {views.mode !== 'source' && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} />}
     </div>
   )
 })

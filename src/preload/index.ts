@@ -16,6 +16,12 @@ const api: EditorApi = {
   exportPdf: (request) => ipcRenderer.invoke(IPC.exportPdf, request),
   print: (request) => ipcRenderer.invoke(IPC.print, request),
   copyRich: (html, text) => ipcRenderer.send(IPC.copyRich, html, text),
+  setAutoCopy: (on) => ipcRenderer.send(IPC.setAutoCopy, on),
+  onAutoCopyChanged(handler) {
+    const listener = (_event: Electron.IpcRendererEvent, on: boolean) => handler(on)
+    ipcRenderer.on(IPC.autoCopyChanged, listener)
+    return () => ipcRenderer.removeListener(IPC.autoCopyChanged, listener)
+  },
   onMenuCommand(handler) {
     const listener = (_event: Electron.IpcRendererEvent, command: MenuCommand) => handler(command)
     ipcRenderer.on(IPC.menuCommand, listener)

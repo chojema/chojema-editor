@@ -202,6 +202,7 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
           prefKey="markdown"
           language="markdown"
           wrap={wrap}
+          zoom={zoom}
           visualScrollRef={scrollRef}
         >
           <div className="doc-page" style={{ zoom: zoom / 100 }}>

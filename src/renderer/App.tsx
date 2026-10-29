@@ -5,6 +5,7 @@ import { MarkdownSurface } from './markdown/MarkdownSurface'
 import { HtmlSurface } from './html/HtmlSurface'
 import { TextSurface } from './text/TextSurface'
 import { ToastHost } from './components/toast'
+import { AutoCopy } from './components/AutoCopy'
 import { showToast } from './components/toast-bus'
 import type { DocStats, SurfaceHandle } from './surface'
 import { t, type StringKey } from './i18n/locale'
@@ -15,7 +16,9 @@ const KIND_LABEL: Record<DocKind, StringKey> = {
   html: 'kindHtml',
 }
 
-const ZOOM_STEPS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200]
+const ZOOM_STEPS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300]
+const zoomIn = (value: number) => ZOOM_STEPS.find((step) => step > value) ?? value
+const zoomOut = (value: number) => [...ZOOM_STEPS].reverse().find((step) => step < value) ?? value
 
 /** files a drop on the window opens as documents (images go into the document instead) */
 const OPENABLE = /\.(md|markdown|mdown|mkd|html?|xhtml|txt)$/i
@@ -45,6 +48,7 @@ export function App() {
   const [stats, setStats] = useState<DocStats>({ words: 0, chars: 0 })
   const [zoom, setZoom] = useState(() => Number(readPref('chojema.zoom', '100')) || 100)
   const [wrap, setWrap] = useState(() => readPref('chojema.wrap', '1') === '1')
+  const [autoCopy, setAutoCopy] = useState(false)
   const surfaceRef = useRef<SurfaceHandle>(null)
 
   useEffect(() => {
@@ -52,7 +56,9 @@ export function App() {
       setInitial(doc)
       setPath(doc.path)
       setEncoding(doc.encoding)
+      setAutoCopy(doc.autoCopy)
     })
+    return window.editorApi.onAutoCopyChanged(setAutoCopy)
   }, [])
 
   useEffect(() => writePref('chojema.zoom', String(zoom)), [zoom])
@@ -170,10 +176,10 @@ export function App() {
             setWrap((value) => !value)
             break
           case 'zoomIn':
-            setZoom((value) => ZOOM_STEPS.find((step) => step > value) ?? value)
+            setZoom(zoomIn)
             break
           case 'zoomOut':
-            setZoom((value) => [...ZOOM_STEPS].reverse().find((step) => step < value) ?? value)
+            setZoom(zoomOut)
             break
           case 'zoomReset':
             setZoom(100)
@@ -247,10 +253,42 @@ export function App() {
         >
           {wrap ? '↩︎' : '→'}
         </button>
-        <button type="button" className="status-btn" onClick={() => setZoom(100)}>
-          {t('zoom', { n: zoom })}
+        <button
+          type="button"
+          className={`status-btn status-toggle${autoCopy ? ' is-on' : ''}`}
+          title={t('autoCopyTip')}
+          aria-pressed={autoCopy}
+          onClick={() => window.editorApi.setAutoCopy(!autoCopy)}
+        >
+          {t('autoCopy')}
         </button>
+        <span className="status-zoom" role="group" aria-label={t('fontSize')}>
+          <button
+            type="button"
+            className="status-btn status-step"
+            title={t('zoomOutTip')}
+            aria-label={t('zoomOutTip')}
+            disabled={zoom <= ZOOM_STEPS[0]!}
+            onClick={() => setZoom(zoomOut)}
+          >
+            −
+          </button>
+          <button type="button" className="status-btn status-zoom-value" title={t('zoomResetTip')} onClick={() => setZoom(100)}>
+            {t('zoom', { n: zoom })}
+          </button>
+          <button
+            type="button"
+            className="status-btn status-step"
+            title={t('zoomInTip')}
+            aria-label={t('zoomInTip')}
+            disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]!}
+            onClick={() => setZoom(zoomIn)}
+          >
+            +
+          </button>
+        </span>
       </footer>
+      <AutoCopy enabled={autoCopy} />
       <ToastHost />
     </div>
   )

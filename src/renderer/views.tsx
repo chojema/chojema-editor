@@ -205,6 +205,8 @@ interface PanesProps {
   prefKey: string
   language: CodeLanguage
   wrap: boolean
+  /** text size of the source pane, in percent */
+  zoom: number
   /** the visual editor's scroll container (receives scroll sync) */
   visualScrollRef: React.RefObject<HTMLDivElement | null>
   /** extra class for the visual scroll container */
@@ -216,7 +218,17 @@ interface PanesProps {
 }
 
 /** source pane, divider and visual pane laid out for the current view mode */
-export function Panes({ views, prefKey, language, wrap, visualScrollRef, visualClassName, children, sourceNote }: PanesProps) {
+export function Panes({
+  views,
+  prefKey,
+  language,
+  wrap,
+  zoom,
+  visualScrollRef,
+  visualClassName,
+  children,
+  sourceNote,
+}: PanesProps) {
   const { mode, sourceSeed, sourceRef, onSourceChange, lastPaneRef } = views
   const [ratio, setRatio] = useState(() => {
     const saved = Number(readPref(`chojema.split.${prefKey}`))
@@ -270,6 +282,7 @@ export function Panes({ views, prefKey, language, wrap, visualScrollRef, visualC
             initialValue={sourceSeed}
             language={language}
             wrap={wrap}
+            fontScale={zoom / 100}
             onChange={onSourceChange}
             onFocus={() => (lastPaneRef.current = 'source')}
           />

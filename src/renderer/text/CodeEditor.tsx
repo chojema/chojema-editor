@@ -45,6 +45,14 @@ interface Props {
   onChange?: (text: string) => void
   onStats?: (stats: { lines: number; chars: number }) => void
   onFocus?: () => void
+  /** text size relative to the 14px default (1 = 100%) */
+  fontScale?: number
+}
+
+const BASE_FONT_PX = 14
+
+function fontTheme(scale: number): Extension {
+  return EditorView.theme({ '&': { fontSize: `${Math.round(BASE_FONT_PX * scale * 10) / 10}px` } })
 }
 
 function languageExtension(language: CodeLanguage): Extension {
@@ -54,7 +62,7 @@ function languageExtension(language: CodeLanguage): Extension {
 }
 
 const theme = EditorView.theme({
-  '&': { height: '100%', fontSize: '14px', backgroundColor: 'var(--surface)', color: 'var(--text)' },
+  '&': { height: '100%', backgroundColor: 'var(--surface)', color: 'var(--text)' },
   '.cm-scroller': {
     fontFamily: "'SF Mono', Menlo, Consolas, 'D2Coding', monospace",
     lineHeight: '1.6',
@@ -75,12 +83,13 @@ const theme = EditorView.theme({
 
 /** CodeMirror 6 host used for plain text files and for the Markdown/HTML source views */
 export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEditor(
-  { initialValue, language, wrap, placeholder, onChange, onStats, onFocus },
+  { initialValue, language, wrap, placeholder, onChange, onStats, onFocus, fontScale = 1 },
   ref,
 ) {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const wrapCompartment = useRef(new Compartment())
+  const fontCompartment = useRef(new Compartment())
   const onChangeRef = useRef(onChange)
   const onStatsRef = useRef(onStats)
   onChangeRef.current = onChange
@@ -114,6 +123,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
         wrapCompartment.current.of(wrap ? EditorView.lineWrapping : []),
         placeholder ? placeholderExt(placeholder) : [],
         theme,
+        fontCompartment.current.of(fontTheme(fontScale)),
         EditorView.updateListener.of((update) => {
           if (!update.docChanged) return
           report(update.state)
@@ -145,6 +155,10 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
       effects: wrapCompartment.current.reconfigure(wrap ? EditorView.lineWrapping : []),
     })
   }, [wrap])
+
+  useEffect(() => {
+    viewRef.current?.dispatch({ effects: fontCompartment.current.reconfigure(fontTheme(fontScale)) })
+  }, [fontScale])
 
   useImperativeHandle(ref, () => ({
     getValue: () => withEol(viewRef.current?.state.doc.toString() ?? ''),

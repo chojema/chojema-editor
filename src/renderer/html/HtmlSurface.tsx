@@ -263,6 +263,7 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
           prefKey="html"
           language="html"
           wrap={wrap}
+          zoom={zoom}
           visualScrollRef={scrollRef}
           visualClassName="html-scroll"
         >

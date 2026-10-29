@@ -29,6 +29,8 @@ export interface InitialDoc {
   content: string
   /** encoding the file was read in; saving always writes UTF-8 */
   encoding: TextEncoding
+  /** app-wide preference: copy a selection to the clipboard as soon as it is made */
+  autoCopy: boolean
 }
 
 export interface SaveResult {
@@ -91,6 +93,8 @@ export interface EditorApi {
   print(request: ExportRequest): Promise<void>
   /** put formatted text on the clipboard (HTML with a plain-text fallback) */
   copyRich(html: string, text: string): void
+  setAutoCopy(on: boolean): void
+  onAutoCopyChanged(handler: (on: boolean) => void): () => void
   onMenuCommand(handler: (command: MenuCommand) => void): () => void
   /** main asks the renderer to save before the window closes; reply with the outcome */
   onSaveBeforeClose(handler: () => Promise<boolean>): () => void
@@ -111,6 +115,8 @@ export const IPC = {
   exportPdf: 'export:pdf',
   print: 'export:print',
   copyRich: 'clipboard:rich',
+  setAutoCopy: 'pref:set-auto-copy',
+  autoCopyChanged: 'pref:auto-copy-changed',
   menuCommand: 'menu:command',
   saveBeforeClose: 'doc:save-before-close',
   saveBeforeCloseReply: 'doc:save-before-close-reply',

@@ -33,12 +33,13 @@ export const TextSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Text
 
   return (
     <div className="surface">
-      <div className="surface-source text-surface" style={{ zoom: zoom / 100 }}>
+      <div className="surface-source text-surface">
         <CodeEditor
           ref={codeRef}
           initialValue={initialContent}
           language="text"
           wrap={wrap}
+          fontScale={zoom / 100}
           placeholder={t('placeholder')}
           onChange={() => onDirty()}
           onStats={({ lines }) => report(codeRef.current?.getValue() ?? initialContent, lines)}

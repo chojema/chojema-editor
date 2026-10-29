@@ -4,6 +4,12 @@
  */
 export const strings = {
   ko: {
+    autoCopy: "선택 시 복사",
+    autoCopyTip: "켜면 글자를 선택하는 즉시 클립보드에 복사합니다 (편집 메뉴에서도 켜고 끌 수 있음)",
+    copiedFlash: "복사됨",
+    zoomInTip: "글자 크게 (⌘=)",
+    zoomOutTip: "글자 작게 (⌘−)",
+    zoomResetTip: "원래 크기로 (⌘0)",
     kindSwitchTip: "문서 종류 바꾸기 (빈 창은 그 자리에서 바뀜)",
     kindNewTip: "다른 종류의 새 문서 (새 창)",
     encodingTip: "파일 인코딩. 저장하면 UTF-8로 기록됩니다.",
@@ -138,6 +144,12 @@ export const strings = {
     insertTableHtml: "표 삽입",
   },
   en: {
+    autoCopy: "Copy on select",
+    autoCopyTip: "When on, selected text is copied to the clipboard right away (also in the Edit menu)",
+    copiedFlash: "Copied",
+    zoomInTip: "Larger text (⌘=)",
+    zoomOutTip: "Smaller text (⌘−)",
+    zoomResetTip: "Actual size (⌘0)",
     kindSwitchTip: "Change document type (an empty window switches in place)",
     kindNewTip: "New document of another type (new window)",
     encodingTip: "File encoding. Saving writes UTF-8.",

@@ -282,24 +282,47 @@ async function withExportWindow<T>(request: ExportRequest, use: (win: BrowserWin
   }
 }
 
-// ---- appearance preference (light / dark / follow the system) ----
+// ---- app-wide preferences (theme, copy on select) ----
 
 type ThemeSource = 'system' | 'light' | 'dark'
-const PREFS_FILE = () => join(app.getPath('userData'), 'preferences.json')
 
-function readTheme(): ThemeSource {
+interface Prefs {
+  theme: ThemeSource
+  autoCopy: boolean
+}
+
+const PREFS_FILE = () => join(app.getPath('userData'), 'preferences.json')
+let prefs: Prefs = { theme: 'system', autoCopy: false }
+
+function loadPrefs(): void {
   try {
-    if (!existsSync(PREFS_FILE())) return 'system'
-    const theme = JSON.parse(readFileSync(PREFS_FILE(), 'utf8')).theme
-    return theme === 'light' || theme === 'dark' ? theme : 'system'
+    if (!existsSync(PREFS_FILE())) return
+    const saved = JSON.parse(readFileSync(PREFS_FILE(), 'utf8')) as Partial<Prefs>
+    prefs = {
+      theme: saved.theme === 'light' || saved.theme === 'dark' ? saved.theme : 'system',
+      autoCopy: saved.autoCopy === true,
+    }
   } catch {
-    return 'system'
+    // unreadable preferences fall back to the defaults
   }
+}
+
+function savePrefs(patch: Partial<Prefs>): void {
+  prefs = { ...prefs, ...patch }
+  void writeFile(PREFS_FILE(), JSON.stringify(prefs), 'utf8').catch(() => {})
 }
 
 function setTheme(theme: ThemeSource): void {
   nativeTheme.themeSource = theme
-  void writeFile(PREFS_FILE(), JSON.stringify({ theme }), 'utf8').catch(() => {})
+  savePrefs({ theme })
+}
+
+/** one switch for every window: the menu checkbox and each status bar follow it */
+function setAutoCopy(on: boolean): void {
+  savePrefs({ autoCopy: on })
+  const item = Menu.getApplicationMenu()?.getMenuItemById('autoCopy')
+  if (item) item.checked = on
+  for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.autoCopyChanged, on)
 }
 
 async function openWithDialog(): Promise<void> {
@@ -400,6 +423,14 @@ function buildMenu(): void {
         { type: 'separator' },
         { label: '찾기…', accelerator: 'CmdOrCtrl+F', click: () => sendMenu('find') },
         { label: '찾아 바꾸기…', accelerator: 'CmdOrCtrl+Alt+F', click: () => sendMenu('replace') },
+        { type: 'separator' },
+        {
+          id: 'autoCopy',
+          label: '선택하면 바로 복사',
+          type: 'checkbox',
+          checked: prefs.autoCopy,
+          click: (item) => setAutoCopy(item.checked),
+        },
       ],
     },
     {
@@ -450,18 +481,19 @@ function buildMenu(): void {
 function registerIpc(): void {
   ipcMain.handle(IPC.getInitialDoc, async (event): Promise<InitialDoc> => {
     const found = docFor(event.sender)
-    if (!found) return { path: null, kind: 'text', content: '', encoding: 'UTF-8' }
+    const autoCopy = prefs.autoCopy
+    if (!found) return { path: null, kind: 'text', content: '', encoding: 'UTF-8', autoCopy }
     const { doc } = found
-    if (!doc.path) return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8' }
+    if (!doc.path) return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy }
     try {
       const { text, encoding } = decodeText(await readFile(doc.path))
       doc.encoding = encoding
-      return { path: doc.path, kind: doc.kind, content: text, encoding }
+      return { path: doc.path, kind: doc.kind, content: text, encoding, autoCopy }
     } catch (error) {
       dialog.showErrorBox('파일을 열 수 없습니다', `${doc.path}\n\n${String(error)}`)
       doc.path = null
       refreshTitle(found.win)
-      return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8' }
+      return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy }
     }
   })
 
@@ -587,6 +619,8 @@ function registerIpc(): void {
     )
   })
 
+  ipcMain.on(IPC.setAutoCopy, (_event, on: unknown) => setAutoCopy(on === true))
+
   ipcMain.on(IPC.copyRich, (_event, html: string, text: string) => {
     clipboard.write({ html: String(html), text: String(text) })
   })
@@ -629,7 +663,8 @@ if (!singleInstance) {
 
   void app.whenReady().then(() => {
     app.setName(APP_NAME)
-    nativeTheme.themeSource = readTheme()
+    loadPrefs()
+    nativeTheme.themeSource = prefs.theme
     app.setAboutPanelOptions({
       applicationName: APP_NAME,
       applicationVersion: app.getVersion(),

@@ -151,7 +151,7 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats }: Opt
   /** settle pending syncs so the visual editor matches the source (before a save baseline) */
   const settle = useCallback(() => {
     flushEditor()
-    if (modeRef.current === 'split') flushSource()
+    if (modeRef.current !== 'visual') flushSource()
   }, [flushEditor, flushSource])
 
   return {

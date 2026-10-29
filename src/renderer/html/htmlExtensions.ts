@@ -23,6 +23,7 @@ import {
   PreserveAttributes,
 } from './preserve'
 import { RawHtmlBlock, RawHtmlInline } from './rawHtml'
+import { WordBreak } from './wordBreak'
 
 /** HTML has sized images; markdown does not, so the shared image node gains the two attributes here */
 const HtmlImage = LocalImage.extend({
@@ -72,6 +73,7 @@ export function buildHtmlExtensions(): AnyExtension[] {
     RawHtmlBlock,
     RawHtmlInline,
     PreserveAttributes,
+    WordBreak,
     BareTextBlocks,
     MarkdownLinkOpen,
     SearchHighlight,

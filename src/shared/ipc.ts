@@ -53,6 +53,13 @@ export interface ExportRequest {
   baseDir: string | null
 }
 
+/** Markdown snapshot with link placeholders to resolve at the chosen destination. */
+export interface MarkdownExportRequest {
+  markdown: string
+  links: Array<{ placeholder: string; url: string }>
+  baseHref: string | null
+}
+
 /** menu commands the main process forwards to the focused window */
 export type MenuCommand =
   | 'save'
@@ -69,6 +76,7 @@ export type MenuCommand =
   | 'zoomReset'
   | 'toggleWrap'
   | 'exportHtml'
+  | 'exportMarkdown'
   | 'exportPdf'
   | 'print'
   | 'copyRich'
@@ -92,6 +100,7 @@ export interface EditorApi {
   /** filesystem path of a dropped File */
   pathForFile(file: File): string
   /** save a standalone HTML page next to wherever the user picks */
+  exportMarkdown(request: MarkdownExportRequest): Promise<SaveResult>
   exportHtml(request: ExportRequest): Promise<SaveResult>
   exportPdf(request: ExportRequest): Promise<SaveResult>
   print(request: ExportRequest): Promise<void>
@@ -118,6 +127,7 @@ export const IPC = {
   openPaths: 'doc:open-paths',
   kindMenu: 'doc:kind-menu',
   exportHtml: 'export:html',
+  exportMarkdown: 'export:markdown',
   exportPdf: 'export:pdf',
   print: 'export:print',
   copyRich: 'clipboard:rich',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { docKindForPath, type DocKind, type InitialDoc } from '../shared/ipc'
 import { lineEnding, type TextEncoding } from '../shared/encoding'
+import { htmlToMarkdown } from './html/toMarkdown'
 import { MarkdownSurface } from './markdown/MarkdownSurface'
 import { HtmlSurface } from './html/HtmlSurface'
 import { TextSurface } from './text/TextSurface'
@@ -138,10 +139,17 @@ export function App() {
     [initial],
   )
 
-  const exportAs = useCallback(async (target: 'html' | 'pdf' | 'print') => {
+  const exportAs = useCallback(async (target: 'html' | 'markdown' | 'pdf' | 'print') => {
     const surface = surfaceRef.current
     if (!surface) return
     try {
+      if (target === 'markdown') {
+        if (initial?.kind !== 'html') return
+        const result = await window.editorApi.exportMarkdown(htmlToMarkdown(surface.getContent()))
+        if (result.ok) showToast(t('exported'))
+        else if (result.error) showToast(t('exportFailed', { error: result.error }), 'error')
+        return
+      }
       const page = await surface.exportPage()
       if (target === 'print') {
         await window.editorApi.print(page)
@@ -153,7 +161,7 @@ export function App() {
     } catch (error) {
       showToast(t('exportFailed', { error: String(error) }), 'error')
     }
-  }, [])
+  }, [initial?.kind])
 
   useEffect(
     () =>
@@ -198,6 +206,9 @@ export function App() {
             break
           case 'zoomReset':
             setZoom(100)
+            break
+          case 'exportMarkdown':
+            void exportAs('markdown')
             break
           case 'exportHtml':
             void exportAs('html')

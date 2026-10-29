@@ -23,8 +23,10 @@ import {
 import { scopeCss } from './scopeCss'
 import { RAW_HTML_EDIT_EVENT, type RawHtmlEditDetail } from './rawHtml'
 import { BARE_ATTR } from './preserve'
+import { KEEP_ALL, setBodyKeepAll, styleWordBreak } from './wordBreak'
 
 const CANVAS = 'html-canvas'
+const BODY_TAG_END = /<body\b[^>]*>$/i
 const SCOPE = `.${CANVAS}`
 
 function joinPath(dir: string, rel: string): string {
@@ -68,6 +70,8 @@ async function buildDocumentCss(source: string, path: string | null): Promise<st
 interface Original {
   raw: string
   doc: PmNode
+  /** the head and <body> tag, which the visual editor can change (word wrapping) */
+  prefix: string
 }
 
 /** the parts of a document that decide its styling: the head plus any <style>/<link> in the body */
@@ -141,7 +145,7 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
       setEnvelope(next)
       envelopeRef.current = next
       editor.chain().setMeta('addToHistory', undoable).setContent(next.body, { emitUpdate: false }).run()
-      originalRef.current = { raw, doc: editor.state.doc }
+      originalRef.current = { raw, doc: editor.state.doc, prefix: next.prefix }
       onStatsRef.current(statsOf(editor.getText()))
     },
     [editor],
@@ -150,7 +154,9 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
   const serialize = useCallback((): string => {
     if (!editor) return startText
     const original = originalRef.current
-    if (original && editor.state.doc.eq(original.doc)) return original.raw
+    if (original && editor.state.doc.eq(original.doc) && envelopeRef.current.prefix === original.prefix) {
+      return original.raw
+    }
     return serializeHtmlDocument(envelopeRef.current, cleanSerializedHtml(editor.getHTML(), BARE_ATTR))
   }, [editor, startText])
 
@@ -177,6 +183,26 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
       alive = false
     }
   }, [stylesKey, path])
+
+  // whole-document word wrapping lives on the <body> tag, outside the editor's document
+  const docKeepAll = BODY_TAG_END.test(envelope.prefix)
+    ? styleWordBreak(envelope.bodyAttrs.style) === KEEP_ALL
+    : null
+  const setDocKeepAll = useCallback(
+    (on: boolean) => {
+      const current = envelopeRef.current
+      const changed = setBodyKeepAll(current.prefix, on)
+      if (!changed) return
+      const { style: _old, ...rest } = current.bodyAttrs
+      const next = { ...current, prefix: changed.prefix, bodyAttrs: changed.style ? { ...rest, style: changed.style } : rest }
+      setEnvelope(next)
+      envelopeRef.current = next
+      onDirtyRef.current()
+      editorUpdateRef.current()
+      editor?.commands.focus()
+    },
+    [editor],
+  )
 
   const insertImage = useCallback(() => {
     void (async () => {
@@ -215,7 +241,7 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
       markSaved(content) {
         if (views.mode === 'source' || !editor) return
         views.settle()
-        originalRef.current = { raw: content, doc: editor.state.doc }
+        originalRef.current = { raw: content, doc: editor.state.doc, prefix: envelopeRef.current.prefix }
       },
       setMode: views.setMode,
       toggleSource: () => views.setMode(views.mode === 'source' ? 'visual' : 'source'),
@@ -252,6 +278,8 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
         onToggleOutline={() => setOutlineOpen(!outlineOpen)}
         onSave={onSave}
         onInsertImage={insertImage}
+        docKeepAll={docKeepAll}
+        onDocKeepAll={setDocKeepAll}
       />
       {find && editor && views.mode !== 'source' && (
         <FindBar editor={editor} withReplace={find.replace} onClose={() => setFind(null)} />

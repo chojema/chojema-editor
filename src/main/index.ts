@@ -13,9 +13,11 @@ import {
   type ExportRequest,
   type InitialDoc,
   type MenuCommand,
+  type MarkdownExportRequest,
   type SaveResult,
 } from '../shared/ipc'
 import { resolveLanguage, type LanguagePreference } from '../shared/language'
+import { markdownForDestination } from './markdownExport'
 import { mainText } from './strings'
 import { decodeText, type TextEncoding } from '../shared/encoding'
 
@@ -100,6 +102,7 @@ function refreshTitle(win: BrowserWindow): void {
   win.setTitle(windowTitle(doc))
   win.setRepresentedFilename(doc.path ?? '')
   win.setDocumentEdited(doc.dirty)
+  updateExportMenu()
 }
 
 function docFor(sender: WebContents): { win: BrowserWindow; doc: WindowDoc } | null {
@@ -144,6 +147,9 @@ function createWindow(path: string | null, kind: DocKind = docKindForPath(path))
   refreshTitle(win)
 
   win.once('ready-to-show', () => win.show())
+  win.on('focus', updateExportMenu)
+  win.on('blur', () => setImmediate(updateExportMenu))
+  win.on('closed', () => setImmediate(updateExportMenu))
   // the window title names the document, not the renderer page's <title>
   win.on('page-title-updated', (event) => event.preventDefault())
 
@@ -416,6 +422,12 @@ function sendMenu(command: MenuCommand): void {
   BrowserWindow.getFocusedWindow()?.webContents.send(IPC.menuCommand, command)
 }
 
+function updateExportMenu(): void {
+  const item = Menu.getApplicationMenu()?.getMenuItemById('exportMarkdown')
+  const win = BrowserWindow.getFocusedWindow()
+  if (item) item.enabled = !!win && docs.get(win.id)?.kind === 'html'
+}
+
 function buildMenu(): void {
   const isMac = process.platform === 'darwin'
   const template: MenuItemConstructorOptions[] = [
@@ -447,6 +459,7 @@ function buildMenu(): void {
           label: mt('내보내기'),
           submenu: [
             { label: mt('HTML로 저장…'), click: () => sendMenu('exportHtml') },
+            { id: 'exportMarkdown', label: mt('Markdown으로 저장…'), click: () => sendMenu('exportMarkdown') },
             { label: mt('서식 있는 텍스트로 복사'), click: () => sendMenu('copyRich') },
           ],
         },
@@ -545,6 +558,7 @@ function buildMenu(): void {
     },
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+  updateExportMenu()
 }
 
 function registerIpc(): void {
@@ -663,6 +677,26 @@ function registerIpc(): void {
     }
   })
 
+  ipcMain.handle(IPC.exportMarkdown, async (event, request: MarkdownExportRequest): Promise<SaveResult> => {
+    const found = docFor(event.sender)
+    if (!found || found.doc.kind !== 'html') return { ok: false }
+    try {
+      const { canceled, filePath } = await dialog.showSaveDialog(found.win, {
+        title: mt('Markdown으로 저장…'),
+        defaultPath: exportName(found.doc, 'md'),
+        filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
+      })
+      if (canceled || !filePath) return { ok: false }
+      if (found.doc.path && resolve(filePath) === resolve(found.doc.path)) {
+        return { ok: false, error: mt('원본과 다른 파일을 선택해 주세요.') }
+      }
+      await writeFile(filePath, markdownForDestination(request, found.doc.path, filePath), 'utf8')
+      return { ok: true, path: filePath }
+    } catch (error) {
+      return { ok: false, error: String(error) }
+    }
+  })
+
   ipcMain.handle(IPC.exportPdf, async (event, request: ExportRequest): Promise<SaveResult> => {
     const found = docFor(event.sender)
     if (!found) return { ok: false }
@@ -739,7 +773,8 @@ if (!singleInstance) {
       applicationName: APP_NAME,
       applicationVersion: app.getVersion(),
       version: '',
-      copyright: 'Copyright © 2026 chojema · Apache License 2.0',
+      authors: ['Chulwoo Park'],
+      copyright: 'Copyright © 2026 Chulwoo Park · Apache License 2.0',
       website: 'https://github.com/chojema/chojema-editor',
     })
     if (process.platform === 'darwin' && !app.isPackaged && existsSync(DEV_ICON)) {

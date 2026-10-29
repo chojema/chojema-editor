@@ -18,6 +18,8 @@ export const mainText = {
   "목록 지우기": "Clear Menu",
   "다른 이름으로 저장…": "Save As…",
   "내보내기": "Export",
+  "Markdown으로 저장…": "Save as Markdown…",
+  "원본과 다른 파일을 선택해 주세요.": "Please choose a different file from the source document.",
   "HTML로 저장…": "Save as HTML…",
   "서식 있는 텍스트로 복사": "Copy Rich Text",
   "PDF로 내보내기…": "Export as PDF…",

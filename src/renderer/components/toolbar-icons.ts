@@ -18,4 +18,4 @@ export {
   IconTable,
   IconUndo,
 } from './docs-icons'
-export { IconHr, IconInlineCode, IconQuoteMark, IconSourceCode, IconTaskList } from './icons'
+export { IconHr, IconInlineCode, IconQuoteMark, IconSourceCode, IconTaskList, IconWordWrap } from './icons'

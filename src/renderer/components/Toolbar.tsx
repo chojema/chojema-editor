@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import type { Editor } from '@tiptap/core'
 import { useEditorState } from '@tiptap/react'
 import { t } from '../i18n/locale'
 import type { StringKey } from '../i18n/locale'
 import { Dropdown } from './dropdown'
 import { OPEN_LINK_EVENT } from '../editor/blockKeymap'
+import { linkTargetAttrs, opensInNewWindow } from '../html/linkTarget'
+import { cellKeepAll, paragraphKeepAll, setCellKeepAll, setParagraphKeepAll } from '../html/wordBreak'
 import type { ViewMode } from '../views'
 import {
   IconAlignCenter,
@@ -31,6 +33,7 @@ import {
   IconTable,
   IconTaskList,
   IconUndo,
+  IconWordWrap,
 } from './toolbar-icons'
 
 export type ToolbarKind = 'markdown' | 'html'
@@ -68,6 +71,9 @@ interface Props {
   onToggleOutline: () => void
   onSave: () => void
   onInsertImage: () => void
+  /** HTML: keep-all on the <body> tag; null when the document has no <body> tag */
+  docKeepAll?: boolean | null
+  onDocKeepAll?: (on: boolean) => void
 }
 
 const MODES: { mode: ViewMode; label: StringKey; tip: StringKey }[] = [
@@ -110,17 +116,38 @@ function Sep() {
   return <span className="tb-sep" aria-hidden />
 }
 
-function LinkButton({ editor, disabled }: { editor: Editor; disabled: boolean }) {
+/** left offset that keeps a popover anchored under its button inside the window */
+function useKeepInWindow(open: boolean, popRef: RefObject<HTMLElement | null>, key?: unknown) {
+  const [shift, setShift] = useState(0)
+  useLayoutEffect(() => {
+    if (!open || !popRef.current) return setShift(0)
+    const overflow = popRef.current.getBoundingClientRect().right - shift - (window.innerWidth - 8)
+    setShift(overflow > 0 ? overflow : 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, key])
+  return shift ? { left: -shift } : undefined
+}
+
+function LinkButton({ editor, disabled, html }: { editor: Editor; disabled: boolean; html: boolean }) {
   const [open, setOpen] = useState(false)
   const [href, setHref] = useState('')
+  const [newWindow, setNewWindow] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapRef = useRef<HTMLSpanElement>(null)
+  const popRef = useRef<HTMLSpanElement>(null)
+  const popStyle = useKeepInWindow(open, popRef, html)
+
+  const loadLink = () => {
+    const attrs = editor.getAttributes('link')
+    setHref(String(attrs.href ?? ''))
+    setNewWindow(opensInNewWindow(attrs.target))
+  }
 
   // ⌘K in the editor asks for this popover
   useEffect(() => {
     const openFromShortcut = () => {
       if (disabled) return
-      setHref(String(editor.getAttributes('link').href ?? ''))
+      loadLink()
       setOpen(true)
     }
     window.addEventListener(OPEN_LINK_EVENT, openFromShortcut)
@@ -141,7 +168,9 @@ function LinkButton({ editor, disabled }: { editor: Editor; disabled: boolean })
   const apply = () => {
     const value = href.trim()
     const chain = editor.chain().focus().extendMarkRange('link')
-    if (value) chain.setLink({ href: value }).run()
+    // Markdown has no link target; HTML carries the new-window choice as target/rel
+    const targetAttrs = html ? linkTargetAttrs(editor.getAttributes('link'), newWindow) : {}
+    if (value) chain.setLink({ href: value, ...targetAttrs }).run()
     else chain.unsetLink().run()
     setOpen(false)
   }
@@ -153,14 +182,14 @@ function LinkButton({ editor, disabled }: { editor: Editor; disabled: boolean })
         active={editor.isActive('link')}
         disabled={disabled}
         onClick={() => {
-          setHref(String(editor.getAttributes('link').href ?? ''))
+          loadLink()
           setOpen((value) => !value)
         }}
       >
         <IconLink size={18} />
       </Btn>
       {open && (
-        <span className="tb-pop">
+        <span className="tb-pop" ref={popRef} style={popStyle}>
           <input
             ref={inputRef}
             className="tb-input"
@@ -175,6 +204,23 @@ function LinkButton({ editor, disabled }: { editor: Editor; disabled: boolean })
               }
             }}
           />
+          {html && (
+            <label className="tb-check">
+              <input
+                type="checkbox"
+                checked={newWindow}
+                onChange={(event) => setNewWindow(event.target.checked)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') apply()
+                  if (event.key === 'Escape') {
+                    setOpen(false)
+                    editor.commands.focus()
+                  }
+                }}
+              />
+              {t('linkNewWindow')}
+            </label>
+          )}
           <button type="button" className="tb-text-btn" onClick={apply}>
             {t('linkApply')}
           </button>
@@ -190,6 +236,82 @@ function LinkButton({ editor, disabled }: { editor: Editor; disabled: boolean })
               {t('unlink')}
             </button>
           )}
+        </span>
+      )}
+    </span>
+  )
+}
+
+/** word-unit line breaking for Korean: whole document, selected paragraphs, selected cells */
+function WordBreakButton({
+  editor,
+  disabled,
+  paragraph,
+  cell,
+  doc,
+  onDoc,
+}: {
+  editor: Editor
+  disabled: boolean
+  paragraph: boolean | null
+  cell: boolean | null
+  doc: boolean | null
+  onDoc: (on: boolean) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLSpanElement>(null)
+  const popRef = useRef<HTMLSpanElement>(null)
+  const popStyle = useKeepInWindow(open, popRef)
+
+  useEffect(() => {
+    if (!open) return
+    const close = (event: MouseEvent) => {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false)
+        editor.commands.focus()
+      }
+    }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [open, editor])
+
+  const rows: { label: StringKey; checked: boolean | null; toggle: (on: boolean) => void }[] = [
+    { label: 'keepWordsDocument', checked: doc, toggle: onDoc },
+    { label: 'keepWordsParagraph', checked: paragraph, toggle: (on) => setParagraphKeepAll(editor, on) },
+    { label: 'keepWordsCell', checked: cell, toggle: (on) => setCellKeepAll(editor, on) },
+  ]
+
+  return (
+    <span className="tb-pop-anchor" ref={wrapRef}>
+      <Btn
+        label={t('keepWords')}
+        active={Boolean(doc || paragraph || cell)}
+        disabled={disabled}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <IconWordWrap size={18} />
+      </Btn>
+      {open && (
+        <span className="tb-pop tb-pop-column" ref={popRef} style={popStyle} role="group" aria-label={t('keepWords')}>
+          <span className="tb-pop-title">{t('keepWordsTitle')}</span>
+          {rows.map((row) => (
+            <label key={row.label} className={`tb-check${row.checked === null ? ' is-disabled' : ''}`}>
+              <input
+                type="checkbox"
+                checked={row.checked === true}
+                disabled={row.checked === null}
+                onChange={(event) => row.toggle(event.target.checked)}
+              />
+              {t(row.label)}
+            </label>
+          ))}
         </span>
       )}
     </span>
@@ -239,6 +361,8 @@ export function Toolbar({
   onToggleOutline,
   onSave,
   onInsertImage,
+  docKeepAll = null,
+  onDocKeepAll = () => {},
 }: Props) {
   const state = useEditorState({
     editor,
@@ -269,6 +393,8 @@ export function Toolbar({
         background: String(textStyle.backgroundColor ?? ''),
         fontFamily: String(textStyle.fontFamily ?? ''),
         fontSize: String(textStyle.fontSize ?? ''),
+        paragraphKeepAll: kind === 'html' ? paragraphKeepAll(e.state) : null,
+        cellKeepAll: kind === 'html' ? cellKeepAll(e.state) : null,
         canUndo: e.can().undo(),
         canRedo: e.can().redo(),
       }
@@ -380,7 +506,7 @@ export function Toolbar({
           <IconHighlight size={18} />
         </Btn>
       )}
-      {editor && <LinkButton editor={editor} disabled={off} />}
+      {editor && <LinkButton editor={editor} disabled={off} html={html} />}
       {html && (
         <Btn
           label={t('clearFormat')}
@@ -405,6 +531,16 @@ export function Toolbar({
           <Btn label={t('alignJustify')} active={state?.align === 'justify'} disabled={off} onClick={() => chain().setTextAlign('justify').run()}>
             <IconAlignJustify size={18} />
           </Btn>
+          {editor && (
+            <WordBreakButton
+              editor={editor}
+              disabled={off}
+              paragraph={state?.paragraphKeepAll ?? null}
+              cell={state?.cellKeepAll ?? null}
+              doc={docKeepAll}
+              onDoc={onDocKeepAll}
+            />
+          )}
           <Sep />
         </>
       )}

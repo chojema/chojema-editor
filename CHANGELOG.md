@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-29
+
+### Added
+- HTML → Markdown 내보내기: 파일 → 내보내기 → Markdown으로 저장. 현재 편집 내용을 별도 파일로 변환하고 링크·이미지 경로를 출력 폴더에 맞춰 조정. 병합·중첩 표는 HTML로 보존.
+- HTML 링크 팝업에 '새 창에서 열기' 선택: 켜면 `target="_blank"`와 `rel="noopener noreferrer"`를 넣고, 끄면 제거. 기존 `rel` 값(nofollow 등)은 유지.
+- HTML 한국어 단어 단위 줄바꿈: 문서 전체(`<body>`)·선택한 문단·선택한 표 셀에 `word-break: keep-all`을 켜고 끔. 문단 설정은 Enter로 만든 새 문단에도 이어짐.
+
+### Fixed
+- Markdown 소스 화면의 최신 수정이 HTML·PDF 내보내기와 인쇄에 반영되지 않던 문제.
+- 좁은 창에서 링크 팝업이 창 오른쪽 밖으로 잘리던 문제.
+
+### Changed
+- 앱 정보의 작성자 표시를 Chulwoo Park으로 변경.
+
 ## [0.4.0] - 2026-10-29
 
 ### Added
@@ -61,7 +75,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/chojema/chojema-editor/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/chojema/chojema-editor/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/chojema/chojema-editor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/chojema/chojema-editor/compare/v0.1.0...v0.2.0

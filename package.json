@@ -3,7 +3,7 @@
   "productName": "Chojema Editor",
   "version": "0.4.0",
   "description": "Text editor with WYSIWYG Markdown and HTML editing",
-  "author": "chojema",
+  "author": "Chulwoo Park",
   "homepage": "https://github.com/chojema/chojema-editor#readme",
   "repository": {
     "type": "git",
@@ -67,6 +67,7 @@
     "@types/node": "^22.19.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/turndown": "^5.0.6",
     "@vitejs/plugin-react": "^5.0.4",
     "electron": "^43.7.6",
     "electron-builder": "^26.0.12",
@@ -77,6 +78,8 @@
     "mermaid": "^11.17.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "turndown": "^7.2.4",
+    "turndown-plugin-gfm": "^1.0.2",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vitest": "^4.1.11",
@@ -165,6 +168,6 @@
       "uninstallerIcon": "build/icon.ico",
       "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
     },
-    "copyright": "Copyright © 2026 chojema"
+    "copyright": "Copyright © 2026 Chulwoo Park"
   }
 }

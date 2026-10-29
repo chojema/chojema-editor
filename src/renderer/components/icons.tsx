@@ -75,6 +75,17 @@ export function IconHr(props: IconProps) {
   )
 }
 
+/* a line wrapping back onto the next: word-unit line breaking */
+export function IconWordWrap(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M2 3.5h12M2 12.5h3.5" opacity="0.55" />
+      <path d="M2 8h9.2a2.25 2.25 0 0 1 0 4.5H8" />
+      <path d="M9.6 10.9 8 12.5l1.6 1.6" />
+    </Svg>
+  )
+}
+
 /* raw-text lines with a caret — reads as "the text itself", and stays clear of
  * the chevron pair IconInlineCode already uses for inline-code formatting */
 export function IconSourceCode(props: IconProps) {

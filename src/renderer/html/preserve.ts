@@ -1,4 +1,5 @@
 import { Extension, Mark, mergeAttributes, Node } from '@tiptap/core'
+import { WORD_BREAK_TYPES } from './wordBreak'
 
 /**
  * Attribute preservation for the HTML editor. TipTap only keeps the attributes
@@ -12,25 +13,32 @@ export type AttrMap = Record<string, string>
 /** CSS properties another extension already renders (TextAlign on blocks) */
 const OWNED_STYLE_PROPS = new Set(['text-align'])
 
-function stripOwnedStyle(style: string): string {
+/** `word-break` on the node types the WordBreak extension covers */
+const WORD_BREAK_PROPS = new Set(['word-break'])
+
+function stripOwnedStyle(style: string, ownedStyle?: ReadonlySet<string>): string {
   return style
     .split(';')
     .map((decl) => decl.trim())
     .filter((decl) => {
       if (!decl) return false
       const prop = decl.slice(0, decl.indexOf(':')).trim().toLowerCase()
-      return !OWNED_STYLE_PROPS.has(prop)
+      return !OWNED_STYLE_PROPS.has(prop) && !ownedStyle?.has(prop)
     })
     .join('; ')
 }
 
-export function collectAttrs(element: HTMLElement, exclude: ReadonlySet<string>): AttrMap | null {
+export function collectAttrs(
+  element: HTMLElement,
+  exclude: ReadonlySet<string>,
+  ownedStyle?: ReadonlySet<string>,
+): AttrMap | null {
   const out: AttrMap = {}
   for (const attr of Array.from(element.attributes)) {
     const name = attr.name.toLowerCase()
     if (exclude.has(name)) continue
     if (name === 'style') {
-      const style = stripOwnedStyle(attr.value)
+      const style = stripOwnedStyle(attr.value, ownedStyle)
       if (style) out.style = style
       continue
     }
@@ -70,6 +78,7 @@ export const PreserveAttributes = Extension.create({
   addGlobalAttributes() {
     return Object.entries(OWNED).map(([type, owned]) => {
       const exclude = new Set(owned)
+      const ownedStyle = WORD_BREAK_TYPES.includes(type) ? WORD_BREAK_PROPS : undefined
       return {
         types: [type],
         attributes: {
@@ -77,7 +86,7 @@ export const PreserveAttributes = Extension.create({
             default: null,
             // a new paragraph from Enter must not inherit the old one's id
             keepOnSplit: false,
-            parseHTML: (element: HTMLElement) => collectAttrs(element, exclude),
+            parseHTML: (element: HTMLElement) => collectAttrs(element, exclude, ownedStyle),
             renderHTML: (attrs: Record<string, unknown>) => renderAttrs(attrs.htmlAttrs),
           },
         },
@@ -150,7 +159,7 @@ function containerRule(tag: string, wantsBlocks: boolean) {
     tag,
     getAttrs: (element: HTMLElement) =>
       hasBlockChildren(element) === wantsBlocks
-        ? { tag, htmlAttrs: collectAttrs(element, NO_EXCLUDE) }
+        ? { tag, htmlAttrs: collectAttrs(element, NO_EXCLUDE, wantsBlocks ? undefined : WORD_BREAK_PROPS) }
         : false,
   }
 }

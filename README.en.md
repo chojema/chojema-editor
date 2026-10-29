@@ -50,13 +50,16 @@ The app opens with an empty Markdown document. Click the document type at the le
 - **Outline** (`⇧⌘O`): list of headings; click one to jump there
 - **Find & replace** (`⌘F`, `⌥⌘F`): match case, replace, replace all
 - **Export to PDF** (File menu, `⇧⌘E`) and **Print** (File menu, `⌘P`)
-- **Export** (File → Export): save as HTML (one file with images embedded), copy as formatted text (for mail and blogs)
+- **Export** (File → Export): Markdown → **Save as HTML…**, HTML → **Save as Markdown…**, or copy formatted text for mail and blogs. Exports the current visual, split or source view contents while keeping the original document open and unchanged.
+  - HTML → Markdown converts headings, emphasis, quotes, lists/tasks, code, links/images and tables. Merged or nested tables remain HTML inside Markdown. CSS, fonts, page layout, scripts and interactive elements are omitted.
+  - Markdown export adjusts link and image paths relative to the output folder. Image files are referenced, not copied; include them when sharing the export. Relative paths in untitled HTML documents are kept as written.
 - **Legacy Korean files**: EUC-KR (CP949) and UTF-16 files open correctly; the status bar shows the encoding and line endings (LF/CRLF). Files are saved as UTF-8, with a confirmation the first time
 - **Drag and drop**: drop a `.md`, `.html` or `.txt` file on the window to open it
 - **Text size**: the **− 100% +** buttons at the right of the status bar (`⌘−` / `⌘=`, `⌘0` for actual size). Applies to text documents, the visual editor and the source pane
 - **Copy on select**: turn it on with the **Copy on select** button in the status bar or Edit → Copy on Select. Selected text then goes to the clipboard right away and a short "✓ Copied" tag appears; the visual editor copies formatting too
 - **Language** (View → Language: Follow System / 한국어 / English). Applies immediately to all windows while preserving your edits.
-- **Links** (`⌘K`), **themes** (View → Theme: system / light / dark)
+- **Korean word wrapping** (HTML): the wrap button next to the alignment buttons turns it on for the whole document, the selected paragraphs or the selected table cells. It adds `word-break: keep-all` so Korean words are not split between syllables at line breaks. The whole-document setting goes on the `<body>` tag and is not undone by `⌘Z`; toggle it off instead. A word longer than its box is not broken and may overflow
+- **Links** (`⌘K`; HTML documents can choose "Open in new window"), **themes** (View → Theme: system / light / dark)
 
 ### How the original text is preserved
 

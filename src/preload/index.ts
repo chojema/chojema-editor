@@ -13,6 +13,7 @@ const api: EditorApi = {
   showKindMenu: () => ipcRenderer.send(IPC.kindMenu),
   openPaths: (paths) => ipcRenderer.send(IPC.openPaths, paths),
   pathForFile: (file) => webUtils.getPathForFile(file),
+  exportMarkdown: (request) => ipcRenderer.invoke(IPC.exportMarkdown, request),
   exportHtml: (request) => ipcRenderer.invoke(IPC.exportHtml, request),
   exportPdf: (request) => ipcRenderer.invoke(IPC.exportPdf, request),
   print: (request) => ipcRenderer.invoke(IPC.print, request),

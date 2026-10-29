@@ -1,0 +1,603 @@
+/* Chojema Editor chrome: layout, toolbar, status bar, find bar, dialogs, HTML canvas. */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--surface);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic',
+    'Segoe UI', sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+.app-loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--text-muted);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.surface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- toolbar ---- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex: none;
+}
+
+.tb-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 5px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.tb-btn:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.tb-btn.is-active {
+  background: var(--active-bg);
+}
+
+.tb-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.tb-glyph {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.tb-i {
+  font-style: italic;
+}
+
+.tb-u {
+  text-decoration: underline;
+}
+
+.tb-s {
+  text-decoration: line-through;
+}
+
+.tb-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 5px;
+  background: var(--border);
+}
+
+.tb-spacer {
+  flex: 1;
+}
+
+.tb-block-dd {
+  width: 108px;
+}
+
+.tb-font-dd {
+  width: 118px;
+}
+
+.tb-size-dd {
+  width: 92px;
+}
+
+.tb-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.tb-mode:hover {
+  background: var(--hover);
+}
+
+.tb-mode.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.tb-pop-anchor {
+  position: relative;
+}
+
+.tb-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-menu);
+}
+
+.tb-input {
+  width: 260px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.tb-input:focus {
+  outline: 2px solid var(--md-focus-ring-blue);
+  border-color: var(--accent);
+}
+
+.tb-text-btn {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tb-text-btn:hover {
+  background: var(--hover);
+}
+
+.tb-color {
+  position: relative;
+  display: inline-flex;
+}
+
+.tb-color-bar {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 3px;
+  height: 3px;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.tb-color-input {
+  position: absolute;
+  inset: auto 0 0 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---- find bar ---- */
+
+.find-bar {
+  position: absolute;
+  top: 50px;
+  right: 18px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-menu);
+}
+
+.find-input {
+  width: 220px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.find-input:focus {
+  outline: 2px solid var(--md-focus-ring-blue);
+  border-color: var(--accent);
+}
+
+.find-count {
+  min-width: 56px;
+  color: var(--text-muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.find-case {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.find-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.find-btn:hover {
+  background: var(--hover);
+}
+
+.search-hit {
+  background: rgb(255 213 79 / 55%);
+  border-radius: 2px;
+}
+
+.search-hit-active {
+  background: rgb(255 152 0 / 70%);
+}
+
+/* ---- scroll areas ---- */
+
+.surface-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.surface-scroll[hidden] {
+  display: none;
+}
+
+.doc-page {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 40px 48px 120px;
+}
+
+.surface-source {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.source-note {
+  padding: 5px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  background: var(--hover);
+}
+
+.code-host {
+  flex: 1;
+  min-height: 0;
+}
+
+.code-host .cm-editor {
+  height: 100%;
+}
+
+.code-host .cm-editor.cm-focused {
+  outline: none;
+}
+
+/* ---- HTML canvas: the document renders as in a browser tab ---- */
+
+.html-scroll {
+  background: var(--hover);
+}
+
+.html-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.html-page > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Browser defaults for a page, so the document's own CSS has the same
+ * starting point it has in a browser and nothing from the app leaks in. */
+.html-canvas {
+  flex: 1;
+  margin: 0;
+  padding: 8px;
+  background: #fff;
+  color: #000;
+  font-family: initial;
+  font-size: 16px;
+  line-height: normal;
+  outline: none;
+  color-scheme: light;
+  min-height: 100%;
+  white-space: normal;
+}
+
+.html-canvas img {
+  max-width: 100%;
+}
+
+.html-canvas img.ProseMirror-selectednode,
+.html-canvas .ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+}
+
+.html-canvas table {
+  border-collapse: collapse;
+}
+
+/* an unstyled table would be invisible while editing; dashed guides show the cells */
+.html-canvas td,
+.html-canvas th {
+  outline: 1px dashed rgb(0 0 0 / 18%);
+  outline-offset: -1px;
+  min-width: 2em;
+  vertical-align: top;
+}
+
+.html-canvas [data-chojema-bare] > p:only-child {
+  margin: 0;
+}
+
+.html-canvas .tableWrapper {
+  overflow-x: auto;
+}
+
+.html-canvas .selectedCell {
+  background: rgb(24 90 189 / 12%);
+}
+
+.html-canvas ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0.4em;
+}
+
+.html-canvas ul[data-type='taskList'] li {
+  display: flex;
+  gap: 0.4em;
+}
+
+.html-canvas ul[data-type='taskList'] li > div {
+  flex: 1;
+}
+
+.html-canvas p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: #9aa0a6;
+  pointer-events: none;
+}
+
+/* ---- preserved raw HTML ---- */
+
+.raw-html-block {
+  position: relative;
+  margin: 0.5em 0;
+  border: 1px dashed #9aa5b1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: rgb(240 244 248 / 70%);
+  font-family: -apple-system, 'Apple SD Gothic Neo', sans-serif;
+  font-size: 12px;
+  color: #45505c;
+  cursor: default;
+}
+
+.raw-html-inline {
+  display: inline-block;
+  vertical-align: middle;
+  border: 1px dashed #9aa5b1;
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: #45505c;
+}
+
+.raw-html-label {
+  font-weight: 600;
+}
+
+.raw-html-code {
+  margin: 4px 0 0;
+  max-height: 120px;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #5c6773;
+}
+
+.raw-html-preview {
+  display: block;
+  font-size: initial;
+  color: initial;
+}
+
+.raw-html-inline .raw-html-preview {
+  display: inline;
+}
+
+.raw-html-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgb(69 80 92 / 80%);
+  color: #fff;
+  font-size: 10px;
+}
+
+.raw-html.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+}
+
+/* ---- dialogs ---- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 35%);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, calc(100vw - 48px));
+  height: min(520px, calc(100vh - 80px));
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-menu);
+  overflow: hidden;
+}
+
+.modal-title {
+  padding: 12px 16px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-code {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.btn {
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--hover);
+}
+
+.btn-primary {
+  border-color: var(--color-btn-primary);
+  background: var(--color-btn-primary);
+  color: var(--color-btn-primary-text);
+}
+
+.btn-primary:hover {
+  background: var(--color-btn-primary);
+  opacity: 0.88;
+}
+
+/* ---- status bar ---- */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 26px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  flex: none;
+  white-space: nowrap;
+}
+
+.status-kind {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.status-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.status-spacer {
+  flex: 1;
+}
+
+.status-btn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.status-btn:hover {
+  background: var(--hover);
+}

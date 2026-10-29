@@ -1,0 +1,157 @@
+{
+  "name": "chojema-editor",
+  "productName": "Chojema Editor",
+  "version": "0.1.0",
+  "description": "Text editor with WYSIWYG Markdown and HTML editing",
+  "author": "chojema",
+  "homepage": "https://github.com/chojema/chojema-editor#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chojema/chojema-editor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chojema/chojema-editor/issues"
+  },
+  "license": "Apache-2.0",
+  "private": true,
+  "main": "out/main/index.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "postinstall": "install-electron",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "dist:dir": "electron-vite build && electron-builder --dir"
+  },
+  "devDependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.0",
+    "@codemirror/lang-html": "^6.4.12",
+    "@codemirror/lang-markdown": "^6.3.4",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.4",
+    "@codemirror/view": "^6.43.11",
+    "@tiptap/core": "3.31.0",
+    "@tiptap/extension-bold": "3.31.0",
+    "@tiptap/extension-code-block": "3.31.0",
+    "@tiptap/extension-hard-break": "3.31.0",
+    "@tiptap/extension-heading": "3.31.0",
+    "@tiptap/extension-highlight": "3.31.0",
+    "@tiptap/extension-horizontal-rule": "3.31.0",
+    "@tiptap/extension-image": "3.31.0",
+    "@tiptap/extension-italic": "3.31.0",
+    "@tiptap/extension-link": "3.31.0",
+    "@tiptap/extension-list": "3.31.0",
+    "@tiptap/extension-mathematics": "3.31.0",
+    "@tiptap/extension-paragraph": "3.31.0",
+    "@tiptap/extension-subscript": "3.31.0",
+    "@tiptap/extension-superscript": "3.31.0",
+    "@tiptap/extension-table": "3.31.0",
+    "@tiptap/extension-text-align": "3.31.0",
+    "@tiptap/extension-text-style": "3.31.0",
+    "@tiptap/extensions": "3.31.0",
+    "@tiptap/markdown": "3.31.0",
+    "@tiptap/pm": "3.31.0",
+    "@tiptap/react": "3.31.0",
+    "@tiptap/starter-kit": "3.31.0",
+    "@tiptap/suggestion": "3.31.0",
+    "@types/node": "^22.19.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.4",
+    "electron": "^43.7.6",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^5.0.0",
+    "jsdom": "^28.0.0",
+    "katex": "^0.18.2",
+    "mermaid": "^11.17.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.1.11",
+    "wavedrom": "^3.7.0"
+  },
+  "build": {
+    "appId": "com.chojema.editor",
+    "productName": "Chojema Editor",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "fileAssociations": [
+      {
+        "ext": [
+          "md",
+          "markdown"
+        ],
+        "name": "Markdown",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "html",
+          "htm"
+        ],
+        "name": "HTML",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "txt"
+        ],
+        "name": "Text",
+        "role": "Editor"
+      }
+    ],
+    "linux": {
+      "icon": "build/icon.png",
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Chojema Editor",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
+    },
+    "copyright": "Copyright © 2026 chojema"
+  }
+}

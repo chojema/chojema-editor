@@ -1,0 +1,20 @@
+export {
+  IconAlignCenter,
+  IconAlignJustify,
+  IconAlignLeft,
+  IconAlignRight,
+  IconBullets,
+  IconClearFormat,
+  IconFontColorA,
+  IconHighlight,
+  IconLink,
+  IconNumbered,
+  IconPicture,
+  IconRedo,
+  IconSave,
+  IconSubscript,
+  IconSuperscript,
+  IconTable,
+  IconUndo,
+} from './docs-icons'
+export { IconHr, IconInlineCode, IconQuoteMark, IconSourceCode, IconTaskList } from './icons'

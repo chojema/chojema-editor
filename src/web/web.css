@@ -1,0 +1,64 @@
+/* menu that stands in for the native menu bar in the web build */
+.web-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 240px;
+  padding: 4px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-menu);
+  font: 13px var(--gs-font-sans);
+}
+
+.web-menu-header {
+  padding: 4px 10px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.web-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--border-subtle);
+}
+
+.web-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 6px;
+  padding: 5px 10px 5px 4px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: default;
+}
+
+.web-menu-item:hover:not(:disabled),
+.web-menu-item:focus-visible {
+  background: var(--hover);
+  outline: none;
+}
+
+.web-menu-item:disabled {
+  color: var(--text-tertiary);
+}
+
+.web-menu-check {
+  width: 16px;
+  text-align: center;
+}
+
+.web-menu-label {
+  flex: 1;
+}
+
+.web-menu-shortcut {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}

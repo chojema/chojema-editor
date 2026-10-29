@@ -15,6 +15,8 @@ import {
   type MenuCommand,
   type SaveResult,
 } from '../shared/ipc'
+import { resolveLanguage, type LanguagePreference } from '../shared/language'
+import { mainText } from './strings'
 import { decodeText, type TextEncoding } from '../shared/encoding'
 
 const APP_NAME = 'Chojema Editor'
@@ -89,7 +91,7 @@ function windowTitle(doc: WindowDoc): string {
 }
 
 function untitledName(kind: DocKind): string {
-  return `Untitled.${DEFAULT_EXTENSION[kind]}`
+  return `${mt('제목 없음')}.${DEFAULT_EXTENSION[kind]}`
 }
 
 function refreshTitle(win: BrowserWindow): void {
@@ -176,11 +178,11 @@ async function confirmClose(win: BrowserWindow, doc: WindowDoc): Promise<void> {
   const name = doc.path ? basename(doc.path) : untitledName(doc.kind)
   const { response } = await dialog.showMessageBox(win, {
     type: 'warning',
-    buttons: ['저장', '저장 안 함', '취소'],
+    buttons: [mt('저장'), mt('저장 안 함'), mt('취소')],
     defaultId: 0,
     cancelId: 2,
-    message: `'${name}'의 변경 내용을 저장할까요?`,
-    detail: '저장하지 않으면 변경 내용이 사라집니다.',
+    message: mt('“{name}”의 변경 내용을 저장할까요?').replace('{name}', name),
+    detail: mt('저장하지 않으면 변경 내용이 사라집니다.'),
   })
   if (response === 2) return
   if (response === 0) {
@@ -206,13 +208,13 @@ function askRendererToSave(win: BrowserWindow): Promise<boolean> {
 async function pickSavePath(win: BrowserWindow, doc: WindowDoc, kind: DocKind): Promise<string | null> {
   const ext = DEFAULT_EXTENSION[kind]
   const filters = {
-    text: [{ name: '텍스트', extensions: ['txt'] }],
+    text: [{ name: mt('텍스트'), extensions: ['txt'] }],
     markdown: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
     html: [{ name: 'HTML', extensions: ['html', 'htm'] }],
   }[kind]
   const { canceled, filePath } = await dialog.showSaveDialog(win, {
     defaultPath: doc.path ?? untitledName(kind).replace(/\.[a-z]+$/, `.${ext}`),
-    filters: [...filters, { name: '모든 파일', extensions: ['*'] }],
+    filters: [...filters, { name: mt('모든 파일'), extensions: ['*'] }],
   })
   return canceled || !filePath ? null : filePath
 }
@@ -226,12 +228,12 @@ async function writeDoc(
   if (doc.encoding !== 'UTF-8') {
     const { response } = await dialog.showMessageBox(win, {
       type: 'question',
-      buttons: ['UTF-8로 저장', '취소'],
+      buttons: [mt('UTF-8로 저장'), mt('취소')],
       defaultId: 0,
       cancelId: 1,
-      message: `이 파일은 ${doc.encoding} 방식으로 저장되어 있습니다.`,
+      message: mt('이 파일은 {encoding} 방식으로 저장되어 있습니다.').replace('{encoding}', doc.encoding),
       detail:
-        'Chojema Editor는 UTF-8로 저장합니다. 이 파일을 옛 방식으로만 읽는 프로그램에서는 한글이 깨져 보일 수 있습니다.',
+        mt('Chojema Editor는 UTF-8로 저장합니다. 이 파일을 옛 방식으로만 읽는 프로그램에서는 한글이 깨져 보일 수 있습니다.'),
     })
     if (response !== 0) return { ok: false }
   }
@@ -288,12 +290,13 @@ type ThemeSource = 'system' | 'light' | 'dark'
 
 interface Prefs {
   theme: ThemeSource
+  language: LanguagePreference
   autoCopy: boolean
   autoComplete: boolean
 }
 
 const PREFS_FILE = () => join(app.getPath('userData'), 'preferences.json')
-let prefs: Prefs = { theme: 'system', autoCopy: false, autoComplete: true }
+let prefs: Prefs = { theme: 'system', language: 'system', autoCopy: false, autoComplete: true }
 
 function loadPrefs(): void {
   try {
@@ -301,6 +304,7 @@ function loadPrefs(): void {
     const saved = JSON.parse(readFileSync(PREFS_FILE(), 'utf8')) as Partial<Prefs>
     prefs = {
       theme: saved.theme === 'light' || saved.theme === 'dark' ? saved.theme : 'system',
+      language: saved.language === 'ko' || saved.language === 'en' ? saved.language : 'system',
       autoCopy: saved.autoCopy === true,
       autoComplete: saved.autoComplete !== false,
     }
@@ -312,6 +316,29 @@ function loadPrefs(): void {
 function savePrefs(patch: Partial<Prefs>): void {
   prefs = { ...prefs, ...patch }
   void writeFile(PREFS_FILE(), JSON.stringify(prefs), 'utf8').catch(() => {})
+}
+
+function currentLanguage() {
+  return resolveLanguage(prefs.language, app.getLocale())
+}
+
+function mt(key: keyof typeof mainText): string {
+  return currentLanguage() === 'ko' ? key : mainText[key]
+}
+
+function aboutLabel(): string {
+  return currentLanguage() === 'ko' ? `${APP_NAME} 정보` : `About ${APP_NAME}`
+}
+
+function setLanguage(language: LanguagePreference): void {
+  savePrefs({ language })
+  buildMenu()
+  for (const id of docs.keys()) {
+    const win = BrowserWindow.fromId(id)
+    if (!win) continue
+    refreshTitle(win)
+    win.webContents.send(IPC.languageChanged, currentLanguage())
+  }
 }
 
 function setTheme(theme: ThemeSource): void {
@@ -339,8 +366,8 @@ async function openWithDialog(): Promise<void> {
   const options: Electron.OpenDialogOptions = {
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: '지원 문서', extensions: ['md', 'markdown', 'html', 'htm', 'txt'] },
-      { name: '모든 파일', extensions: ['*'] },
+      { name: mt('지원 문서'), extensions: ['md', 'markdown', 'html', 'htm', 'txt'] },
+      { name: mt('모든 파일'), extensions: ['*'] },
     ],
   }
   const { canceled, filePaths } = focused
@@ -350,7 +377,9 @@ async function openWithDialog(): Promise<void> {
   for (const path of filePaths) openPath(path)
 }
 
-const KIND_LABELS: Record<DocKind, string> = { text: '텍스트', markdown: 'Markdown', html: 'HTML' }
+function kindLabel(kind: DocKind): string {
+  return kind === 'text' ? mt('텍스트') : kind === 'markdown' ? 'Markdown' : 'HTML'
+}
 
 /**
  * Start a document of `kind`. A window that is still empty (untitled, never
@@ -390,59 +419,69 @@ function sendMenu(command: MenuCommand): void {
 function buildMenu(): void {
   const isMac = process.platform === 'darwin'
   const template: MenuItemConstructorOptions[] = [
-    ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    ...(isMac ? [{ label: APP_NAME, submenu: [
+      { role: 'about' as const, label: aboutLabel() },
+      { type: 'separator' as const },
+      { role: 'services' as const, label: mt('서비스') },
+      { type: 'separator' as const },
+      { role: 'hide' as const, label: `${mt('숨기기')} ${APP_NAME}` },
+      { role: 'hideOthers' as const, label: mt('다른 앱 숨기기') },
+      { role: 'unhide' as const, label: mt('모두 보기') },
+      { type: 'separator' as const },
+      { role: 'quit' as const, label: `${mt('끝내기')} ${APP_NAME}` },
+    ] }] : []),
     {
-      label: '파일',
+      label: mt('파일'),
       submenu: [
-        { label: '새 텍스트 문서', accelerator: 'CmdOrCtrl+N', click: () => newDocument('text') },
-        { label: '새 Markdown 문서', accelerator: 'CmdOrCtrl+Shift+N', click: () => newDocument('markdown') },
-        { label: '새 HTML 문서', accelerator: 'CmdOrCtrl+Alt+N', click: () => newDocument('html') },
+        { label: mt('새 텍스트 문서'), accelerator: 'CmdOrCtrl+N', click: () => newDocument('text') },
+        { label: mt('새 Markdown 문서'), accelerator: 'CmdOrCtrl+Shift+N', click: () => newDocument('markdown') },
+        { label: mt('새 HTML 문서'), accelerator: 'CmdOrCtrl+Alt+N', click: () => newDocument('html') },
         { type: 'separator' },
-        { label: '열기…', accelerator: 'CmdOrCtrl+O', click: () => void openWithDialog() },
-        { role: 'recentDocuments', label: '최근 문서', submenu: [{ role: 'clearRecentDocuments', label: '목록 지우기' }] },
+        { label: mt('열기…'), accelerator: 'CmdOrCtrl+O', click: () => void openWithDialog() },
+        { role: 'recentDocuments', label: mt('최근 문서'), submenu: [{ role: 'clearRecentDocuments', label: mt('목록 지우기') }] },
         { type: 'separator' },
-        { label: '저장', accelerator: 'CmdOrCtrl+S', click: () => sendMenu('save') },
-        { label: '다른 이름으로 저장…', accelerator: 'CmdOrCtrl+Shift+S', click: () => sendMenu('saveAs') },
+        { label: mt('저장'), accelerator: 'CmdOrCtrl+S', click: () => sendMenu('save') },
+        { label: mt('다른 이름으로 저장…'), accelerator: 'CmdOrCtrl+Shift+S', click: () => sendMenu('saveAs') },
         { type: 'separator' },
         {
-          label: '내보내기',
+          label: mt('내보내기'),
           submenu: [
-            { label: 'HTML로 저장…', click: () => sendMenu('exportHtml') },
-            { label: '서식 있는 텍스트로 복사', click: () => sendMenu('copyRich') },
+            { label: mt('HTML로 저장…'), click: () => sendMenu('exportHtml') },
+            { label: mt('서식 있는 텍스트로 복사'), click: () => sendMenu('copyRich') },
           ],
         },
         { type: 'separator' },
-        { label: 'PDF로 내보내기…', accelerator: 'CmdOrCtrl+Shift+E', click: () => sendMenu('exportPdf') },
-        { label: '인쇄…', accelerator: 'CmdOrCtrl+P', click: () => sendMenu('print') },
+        { label: mt('PDF로 내보내기…'), accelerator: 'CmdOrCtrl+Shift+E', click: () => sendMenu('exportPdf') },
+        { label: mt('인쇄…'), accelerator: 'CmdOrCtrl+P', click: () => sendMenu('print') },
         { type: 'separator' },
-        isMac ? { role: 'close', label: '창 닫기' } : { role: 'quit', label: '끝내기' },
+        isMac ? { role: 'close', label: mt('창 닫기') } : { role: 'quit', label: mt('끝내기') },
       ],
     },
     {
-      label: '편집',
+      label: mt('편집'),
       submenu: [
-        { role: 'undo', label: '실행 취소' },
-        { role: 'redo', label: '다시 실행' },
+        { role: 'undo', label: mt('실행 취소') },
+        { role: 'redo', label: mt('다시 실행') },
         { type: 'separator' },
-        { role: 'cut', label: '잘라내기' },
-        { role: 'copy', label: '복사' },
-        { role: 'paste', label: '붙여넣기' },
-        { role: 'pasteAndMatchStyle', label: '서식 없이 붙여넣기' },
-        { role: 'selectAll', label: '모두 선택' },
+        { role: 'cut', label: mt('잘라내기') },
+        { role: 'copy', label: mt('복사') },
+        { role: 'paste', label: mt('붙여넣기') },
+        { role: 'pasteAndMatchStyle', label: mt('서식 없이 붙여넣기') },
+        { role: 'selectAll', label: mt('모두 선택') },
         { type: 'separator' },
-        { label: '찾기…', accelerator: 'CmdOrCtrl+F', click: () => sendMenu('find') },
-        { label: '찾아 바꾸기…', accelerator: 'CmdOrCtrl+Alt+F', click: () => sendMenu('replace') },
+        { label: mt('찾기…'), accelerator: 'CmdOrCtrl+F', click: () => sendMenu('find') },
+        { label: mt('찾아 바꾸기…'), accelerator: 'CmdOrCtrl+Alt+F', click: () => sendMenu('replace') },
         { type: 'separator' },
         {
           id: 'autoCopy',
-          label: '선택하면 바로 복사',
+          label: mt('선택하면 바로 복사'),
           type: 'checkbox',
           checked: prefs.autoCopy,
           click: (item) => setAutoCopy(item.checked),
         },
         {
           id: 'autoComplete',
-          label: '소스 자동 완성',
+          label: mt('소스 자동 완성'),
           type: 'checkbox',
           checked: prefs.autoComplete,
           click: (item) => setAutoComplete(item.checked),
@@ -450,42 +489,56 @@ function buildMenu(): void {
       ],
     },
     {
-      label: '보기',
+      label: mt('보기'),
       submenu: [
-        { label: '편집 화면', accelerator: 'CmdOrCtrl+1', click: () => sendMenu('viewVisual') },
-        { label: '나란히 보기', accelerator: 'CmdOrCtrl+2', click: () => sendMenu('viewSplit') },
-        { label: '소스 보기', accelerator: 'CmdOrCtrl+3', click: () => sendMenu('viewSource') },
-        { label: '편집 화면 ↔ 소스 전환', accelerator: 'CmdOrCtrl+/', click: () => sendMenu('toggleSource') },
+        { label: mt('편집 화면'), accelerator: 'CmdOrCtrl+1', click: () => sendMenu('viewVisual') },
+        { label: mt('나란히 보기'), accelerator: 'CmdOrCtrl+2', click: () => sendMenu('viewSplit') },
+        { label: mt('소스 보기'), accelerator: 'CmdOrCtrl+3', click: () => sendMenu('viewSource') },
+        { label: mt('편집 화면 ↔ 소스 전환'), accelerator: 'CmdOrCtrl+/', click: () => sendMenu('toggleSource') },
         { type: 'separator' },
-        { label: '개요', accelerator: 'CmdOrCtrl+Shift+O', click: () => sendMenu('toggleOutline') },
-        { label: '자동 줄 바꿈 전환', accelerator: 'Alt+Z', click: () => sendMenu('toggleWrap') },
+        { label: mt('개요'), accelerator: 'CmdOrCtrl+Shift+O', click: () => sendMenu('toggleOutline') },
+        { label: mt('자동 줄 바꿈 전환'), accelerator: 'Alt+Z', click: () => sendMenu('toggleWrap') },
         { type: 'separator' },
-        { label: '확대', accelerator: 'CmdOrCtrl+=', click: () => sendMenu('zoomIn') },
-        { label: '축소', accelerator: 'CmdOrCtrl+-', click: () => sendMenu('zoomOut') },
-        { label: '원래 크기', accelerator: 'CmdOrCtrl+0', click: () => sendMenu('zoomReset') },
+        { label: mt('확대'), accelerator: 'CmdOrCtrl+=', click: () => sendMenu('zoomIn') },
+        { label: mt('축소'), accelerator: 'CmdOrCtrl+-', click: () => sendMenu('zoomOut') },
+        { label: mt('원래 크기'), accelerator: 'CmdOrCtrl+0', click: () => sendMenu('zoomReset') },
         { type: 'separator' },
         {
-          label: '테마',
+          label: mt('언어'),
+          submenu: (['system', 'ko', 'en'] as const).map((language) => ({
+            id: `language-${language}`,
+            label: { system: mt('시스템 설정 따르기'), ko: '한국어', en: 'English' }[language],
+            type: 'radio' as const,
+            checked: prefs.language === language,
+            click: () => setLanguage(language),
+          })),
+        },
+        {
+          label: mt('테마'),
           submenu: (['system', 'light', 'dark'] as const).map((theme) => ({
-            label: { system: '시스템 설정 따르기', light: '밝게', dark: '어둡게' }[theme],
+            label: { system: mt('시스템 설정 따르기'), light: mt('밝게'), dark: mt('어둡게') }[theme],
             type: 'radio' as const,
             checked: nativeTheme.themeSource === theme,
             click: () => setTheme(theme),
           })),
         },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: '전체 화면' },
-        ...(app.isPackaged ? [] : [{ role: 'toggleDevTools' as const }, { role: 'reload' as const }]),
+        { role: 'togglefullscreen', label: mt('전체 화면') },
+        ...(app.isPackaged ? [] : [{ role: 'toggleDevTools' as const, label: mt('개발자 도구') }, { role: 'reload' as const, label: mt('다시 불러오기') }]),
       ],
     },
-    { role: 'windowMenu', label: '윈도우' },
+    { role: 'windowMenu', label: mt('윈도우'), submenu: [
+      { role: 'minimize', label: mt('최소화') },
+      { role: 'zoom', label: mt('확대/축소') },
+      ...(isMac ? [{ role: 'front' as const, label: mt('모든 창 앞으로') }] : []),
+    ] },
     {
       role: 'help',
-      label: '도움말',
+      label: mt('도움말'),
       submenu: [
-        { label: `${APP_NAME} 정보`, click: () => app.showAboutPanel() },
+        { label: aboutLabel(), click: () => app.showAboutPanel() },
         {
-          label: '웹사이트',
+          label: mt('웹사이트'),
           click: () => void shell.openExternal('https://github.com/chojema/chojema-editor'),
         },
       ],
@@ -498,18 +551,19 @@ function registerIpc(): void {
   ipcMain.handle(IPC.getInitialDoc, async (event): Promise<InitialDoc> => {
     const found = docFor(event.sender)
     const { autoCopy, autoComplete } = prefs
-    if (!found) return { path: null, kind: 'text', content: '', encoding: 'UTF-8', autoCopy, autoComplete }
+    const language = currentLanguage()
+    if (!found) return { path: null, kind: 'text', content: '', encoding: 'UTF-8', autoCopy, autoComplete, language }
     const { doc } = found
-    if (!doc.path) return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy, autoComplete }
+    if (!doc.path) return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy, autoComplete, language }
     try {
       const { text, encoding } = decodeText(await readFile(doc.path))
       doc.encoding = encoding
-      return { path: doc.path, kind: doc.kind, content: text, encoding, autoCopy, autoComplete }
+      return { path: doc.path, kind: doc.kind, content: text, encoding, autoCopy, autoComplete, language }
     } catch (error) {
-      dialog.showErrorBox('파일을 열 수 없습니다', `${doc.path}\n\n${String(error)}`)
+      dialog.showErrorBox(mt('파일을 열 수 없습니다'), `${doc.path}\n\n${String(error)}`)
       doc.path = null
       refreshTitle(found.win)
-      return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy, autoComplete }
+      return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy, autoComplete, language }
     }
   })
 
@@ -553,7 +607,7 @@ function registerIpc(): void {
     if (!found) return null
     const { canceled, filePaths } = await dialog.showOpenDialog(found.win, {
       properties: ['openFile'],
-      filters: [{ name: '이미지', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] }],
+      filters: [{ name: mt('이미지'), extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] }],
     })
     if (canceled || !filePaths[0]) return null
     const picked = filePaths[0]
@@ -576,11 +630,11 @@ function registerIpc(): void {
     const empty = doc.path === null && !doc.dirty
     Menu.buildFromTemplate([
       {
-        label: empty ? '이 창을 다음 문서로 바꾸기' : '새 창에서 시작',
+        label: empty ? mt('이 창을 다음 문서로 바꾸기') : mt('새 창에서 시작'),
         enabled: false,
       },
       ...(['text', 'markdown', 'html'] as const).map((kind) => ({
-        label: `${KIND_LABELS[kind]} 문서`,
+        label: `${kindLabel(kind)} ${mt('문서')}`,
         type: 'radio' as const,
         checked: doc.kind === kind,
         click: () => newDocument(kind, win),

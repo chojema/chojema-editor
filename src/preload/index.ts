@@ -1,3 +1,4 @@
+import type { Language } from '../shared/language'
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import { IPC, type EditorApi, type MenuCommand } from '../shared/ipc'
 
@@ -17,6 +18,11 @@ const api: EditorApi = {
   print: (request) => ipcRenderer.invoke(IPC.print, request),
   copyRich: (html, text) => ipcRenderer.send(IPC.copyRich, html, text),
   setAutoCopy: (on) => ipcRenderer.send(IPC.setAutoCopy, on),
+  onLanguageChanged(handler) {
+    const listener = (_event: Electron.IpcRendererEvent, language: Language) => handler(language)
+    ipcRenderer.on(IPC.languageChanged, listener)
+    return () => ipcRenderer.removeListener(IPC.languageChanged, listener)
+  },
   onAutoCompleteChanged(handler) {
     const listener = (_event: Electron.IpcRendererEvent, on: boolean) => handler(on)
     ipcRenderer.on(IPC.autoCompleteChanged, listener)

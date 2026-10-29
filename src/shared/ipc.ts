@@ -1,5 +1,6 @@
 /** Contract between the main process, the preload bridge and the renderer. */
 
+import type { Language } from './language'
 import type { TextEncoding } from './encoding'
 
 /** pasted / dropped images above this size are refused instead of copied into assets/ */
@@ -23,6 +24,7 @@ export const DEFAULT_EXTENSION: Record<DocKind, string> = {
 
 /** what a window starts with: a file from disk, or an untitled document of a kind */
 export interface InitialDoc {
+  language: Language
   path: string | null
   kind: DocKind
   /** file text as read from disk ('' for an untitled document) */
@@ -97,6 +99,7 @@ export interface EditorApi {
   copyRich(html: string, text: string): void
   setAutoCopy(on: boolean): void
   onAutoCopyChanged(handler: (on: boolean) => void): () => void
+  onLanguageChanged(handler: (language: Language) => void): () => void
   onAutoCompleteChanged(handler: (on: boolean) => void): () => void
   onMenuCommand(handler: (command: MenuCommand) => void): () => void
   /** main asks the renderer to save before the window closes; reply with the outcome */
@@ -121,6 +124,7 @@ export const IPC = {
   setAutoCopy: 'pref:set-auto-copy',
   autoCopyChanged: 'pref:auto-copy-changed',
   autoCompleteChanged: 'pref:auto-complete-changed',
+  languageChanged: 'pref:language-changed',
   menuCommand: 'menu:command',
   saveBeforeClose: 'doc:save-before-close',
   saveBeforeCloseReply: 'doc:save-before-close-reply',

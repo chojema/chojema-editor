@@ -55,6 +55,7 @@ The app opens with an empty Markdown document. Click the document type at the le
 - **Drag and drop**: drop a `.md`, `.html` or `.txt` file on the window to open it
 - **Text size**: the **− 100% +** buttons at the right of the status bar (`⌘−` / `⌘=`, `⌘0` for actual size). Applies to text documents, the visual editor and the source pane
 - **Copy on select**: turn it on with the **Copy on select** button in the status bar or Edit → Copy on Select. Selected text then goes to the clipboard right away and a short "✓ Copied" tag appears; the visual editor copies formatting too
+- **Language** (View → Language: Follow System / 한국어 / English). Applies immediately to all windows while preserving your edits.
 - **Links** (`⌘K`), **themes** (View → Theme: system / light / dark)
 
 ### How the original text is preserved

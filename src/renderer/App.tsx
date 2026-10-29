@@ -8,7 +8,7 @@ import { ToastHost } from './components/toast'
 import { AutoCopy } from './components/AutoCopy'
 import { showToast } from './components/toast-bus'
 import type { DocStats, SurfaceHandle } from './surface'
-import { t, type StringKey } from './i18n/locale'
+import { t, setLanguage, useI18n, type StringKey } from './i18n/locale'
 
 const KIND_LABEL: Record<DocKind, StringKey> = {
   text: 'kindText',
@@ -40,6 +40,7 @@ function writePref(key: string, value: string): void {
 }
 
 export function App() {
+  useI18n()
   const [initial, setInitial] = useState<InitialDoc | null>(null)
   const [path, setPath] = useState<string | null>(null)
   const [encoding, setEncoding] = useState<TextEncoding>('UTF-8')
@@ -53,7 +54,13 @@ export function App() {
   const surfaceRef = useRef<SurfaceHandle>(null)
 
   useEffect(() => {
+    let languageChanged = false
+    const offLanguage = window.editorApi.onLanguageChanged((language) => {
+      languageChanged = true
+      setLanguage(language)
+    })
     void window.editorApi.getInitialDoc().then((doc) => {
+      if (!languageChanged) setLanguage(doc.language)
       setInitial(doc)
       setPath(doc.path)
       setEncoding(doc.encoding)
@@ -63,6 +70,7 @@ export function App() {
     const offCopy = window.editorApi.onAutoCopyChanged(setAutoCopy)
     const offComplete = window.editorApi.onAutoCompleteChanged(setAutoComplete)
     return () => {
+      offLanguage()
       offCopy()
       offComplete()
     }

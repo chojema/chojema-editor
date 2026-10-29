@@ -5,7 +5,10 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+
 ### Added
+- UI 언어 선택: 보기 → 언어에서 시스템 설정 따르기 / 한국어 / English. 메뉴·대화상자·편집 UI에 반영하며 모든 창의 미저장 내용과 실행 취소 기록을 유지.
 - 소스 화면 자동 완성: HTML 태그·속성·값과 `<style>` 안의 CSS, `<script>` 안의 JavaScript. 편집 → "소스 자동 완성"으로 켜고 끔(기본 켜짐).
 
 ### Changed
@@ -58,7 +61,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/chojema/chojema-editor/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/chojema/chojema-editor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/chojema/chojema-editor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/chojema/chojema-editor/releases/tag/v0.1.0

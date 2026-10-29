@@ -1,5 +1,7 @@
 # Chojema Editor
 
+**한국어** | [English](README.en.md)
+
 일반 텍스트, Markdown, HTML을 편집하는 데스크톱 편집기입니다. Markdown과 HTML은 위지위그(보이는 그대로) 방식으로 편집합니다.
 [chojemaoffice](https://github.com/chojema/chojemaoffice)의 Markdown 편집기 코드를 바탕으로 만들었습니다(Apache-2.0, `NOTICE` 참고).
 
@@ -54,6 +56,8 @@ git push --follow-tags
 npm run dist:mac && npm run dist:win
 gh release create vX.Y.Z dist/*.dmg dist/*Setup*.exe --title "vX.Y.Z" --notes-file <릴리스 노트>
 ```
+
+릴리스 노트는 [docs/release-notes-template.md](docs/release-notes-template.md) 형식으로 한국어를 먼저, 영문을 뒤에 씁니다.
 
 앱의 버전은 `package.json`의 `version` 하나에서 나오며, 설치 파일 이름과 앱 정보 창(macOS: 앱 메뉴, Windows: 도움말 메뉴)에 표시됩니다.
 
@@ -114,7 +118,9 @@ tests/           HTML·Markdown 왕복 변환 테스트
 
 원본은 `build/icon.svg`입니다. 고친 뒤에는 이 SVG에서 `icon.png`(1024px), `icon.icns`(16~1024px, `iconutil`로 묶음), `icon.ico`(16~256px)를 다시 만들어야 합니다.
 
-추후 과제(AI 기능)는 `docs/FUTURE-AI.md`에 있습니다.
+## 추후 과제
+
+AI 기능은 나중에 추가할 예정입니다. 참고할 원본 코드 위치는 [docs/FUTURE-AI.md](docs/FUTURE-AI.md)에 있습니다.
 
 ## 라이선스
 

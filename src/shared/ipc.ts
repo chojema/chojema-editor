@@ -79,6 +79,8 @@ export interface EditorApi {
   pickImage(): Promise<string | null>
   /** read a stylesheet or other text asset next to an HTML document */
   readAsset(relPath: string): Promise<string | null>
+  /** pop up the document-type menu (switches an empty window in place, else opens a new one) */
+  showKindMenu(): void
   /** open files dropped on a window (each in its own window, or this one when it is empty) */
   openPaths(paths: string[]): void
   /** filesystem path of a dropped File */
@@ -104,6 +106,7 @@ export const IPC = {
   pickImage: 'doc:pick-image',
   readAsset: 'doc:read-asset',
   openPaths: 'doc:open-paths',
+  kindMenu: 'doc:kind-menu',
   exportHtml: 'export:html',
   exportPdf: 'export:pdf',
   print: 'export:print',

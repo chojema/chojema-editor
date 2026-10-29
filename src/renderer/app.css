@@ -633,16 +633,19 @@ body.is-resizing .pane {
   flex-direction: column;
 }
 
+/* a row, so a page rule like `body { max-width; margin: auto }` fills and
+ * centres the canvas as a browser does instead of shrinking it to its text */
 .html-page > div {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 }
 
 /* Browser defaults for a page, so the document's own CSS has the same
  * starting point it has in a browser and nothing from the app leaks in. */
 .html-canvas {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
   padding: 8px;
   background: #fff;

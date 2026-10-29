@@ -36,6 +36,10 @@ Switch with the buttons at the right of the toolbar or the shortcuts.
 
 For Markdown, a visual edit in the side-by-side view rewrites only the edited block in the source; every other line stays as written.
 
+### Changing the document type
+
+The app opens with an empty Markdown document. Click the document type at the left of the status bar (**Markdown ▾**), or choose New Text Document (`⌘N`), New Markdown Document (`⇧⌘N`) or New HTML Document (`⌥⌘N`) in the File menu. A window you have not typed in yet switches in place; a window with content or a saved file opens a new window instead.
+
 ### More
 
 - **Outline** (`⇧⌘O`): list of headings; click one to jump there

@@ -219,7 +219,14 @@ export function App() {
       {initial.kind === 'html' && <HtmlSurface ref={surfaceRef} {...surfaceProps} />}
       {initial.kind === 'text' && <TextSurface ref={surfaceRef} {...surfaceProps} />}
       <footer className="status-bar">
-        <span className="status-kind">{t(KIND_LABEL[initial.kind])}</span>
+        <button
+          type="button"
+          className="status-btn status-kind"
+          title={t(!path && !dirty ? 'kindSwitchTip' : 'kindNewTip')}
+          onClick={() => window.editorApi.showKindMenu()}
+        >
+          {t(KIND_LABEL[initial.kind])} ▾
+        </button>
         <span className="status-path" title={path ?? ''}>
           {dirty ? '● ' : ''}
           {path ?? t('untitled')}

@@ -4,6 +4,8 @@
  */
 export const strings = {
   ko: {
+    kindSwitchTip: "문서 종류 바꾸기 (빈 창은 그 자리에서 바뀜)",
+    kindNewTip: "다른 종류의 새 문서 (새 창)",
     encodingTip: "파일 인코딩. 저장하면 UTF-8로 기록됩니다.",
     viewSplit: "나란히",
     viewVisualTip: "편집 화면만 보기 (⌘1)",
@@ -136,6 +138,8 @@ export const strings = {
     insertTableHtml: "표 삽입",
   },
   en: {
+    kindSwitchTip: "Change document type (an empty window switches in place)",
+    kindNewTip: "New document of another type (new window)",
     encodingTip: "File encoding. Saving writes UTF-8.",
     viewSplit: "Side by side",
     viewVisualTip: "Visual editor only (⌘1)",

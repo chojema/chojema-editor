@@ -318,6 +318,24 @@ async function openWithDialog(): Promise<void> {
   for (const path of filePaths) openPath(path)
 }
 
+const KIND_LABELS: Record<DocKind, string> = { text: '텍스트', markdown: 'Markdown', html: 'HTML' }
+
+/**
+ * Start a document of `kind`. A window that is still empty (untitled, never
+ * edited) simply turns into the new kind; otherwise a new window opens.
+ */
+function newDocument(kind: DocKind, win: BrowserWindow | null = BrowserWindow.getFocusedWindow()): void {
+  const doc = win ? docs.get(win.id) : undefined
+  if (win && doc && doc.path === null && !doc.dirty) {
+    if (doc.kind === kind) return
+    doc.kind = kind
+    refreshTitle(win)
+    win.reload()
+    return
+  }
+  createWindow(null, kind)
+}
+
 function openPath(path: string): void {
   // an untouched untitled window is reused instead of leaving an empty one behind
   const focused = BrowserWindow.getFocusedWindow()
@@ -344,9 +362,9 @@ function buildMenu(): void {
     {
       label: '파일',
       submenu: [
-        { label: '새 텍스트 문서', accelerator: 'CmdOrCtrl+N', click: () => createWindow(null, 'text') },
-        { label: '새 Markdown 문서', accelerator: 'CmdOrCtrl+Shift+N', click: () => createWindow(null, 'markdown') },
-        { label: '새 HTML 문서', accelerator: 'CmdOrCtrl+Alt+N', click: () => createWindow(null, 'html') },
+        { label: '새 텍스트 문서', accelerator: 'CmdOrCtrl+N', click: () => newDocument('text') },
+        { label: '새 Markdown 문서', accelerator: 'CmdOrCtrl+Shift+N', click: () => newDocument('markdown') },
+        { label: '새 HTML 문서', accelerator: 'CmdOrCtrl+Alt+N', click: () => newDocument('html') },
         { type: 'separator' },
         { label: '열기…', accelerator: 'CmdOrCtrl+O', click: () => void openWithDialog() },
         { role: 'recentDocuments', submenu: [{ role: 'clearRecentDocuments' }] },
@@ -499,6 +517,26 @@ function registerIpc(): void {
     const target = join(assets, basename(picked))
     if (!existsSync(target)) await copyFile(picked, target)
     return `assets/${basename(picked)}`
+  })
+
+  // the document-type control in the status bar
+  ipcMain.on(IPC.kindMenu, (event) => {
+    const found = docFor(event.sender)
+    if (!found) return
+    const { win, doc } = found
+    const empty = doc.path === null && !doc.dirty
+    Menu.buildFromTemplate([
+      {
+        label: empty ? '이 창을 다음 문서로 바꾸기' : '새 창에서 시작',
+        enabled: false,
+      },
+      ...(['text', 'markdown', 'html'] as const).map((kind) => ({
+        label: `${KIND_LABELS[kind]} 문서`,
+        type: 'radio' as const,
+        checked: doc.kind === kind,
+        click: () => newDocument(kind, win),
+      })),
+    ]).popup({ window: win })
   })
 
   ipcMain.on(IPC.openPaths, (_event, paths: unknown) => {

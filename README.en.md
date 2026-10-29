@@ -44,7 +44,8 @@ The app opens with an empty Markdown document. Click the document type at the le
 
 - **Outline** (`⇧⌘O`): list of headings; click one to jump there
 - **Find & replace** (`⌘F`, `⌥⌘F`): match case, replace, replace all
-- **Export** (File → Export): save as HTML (one file with images embedded), save as PDF, copy as formatted text (for mail and blogs), print (`⌘P`)
+- **Export to PDF** (File menu, `⇧⌘E`) and **Print** (File menu, `⌘P`)
+- **Export** (File → Export): save as HTML (one file with images embedded), copy as formatted text (for mail and blogs)
 - **Legacy Korean files**: EUC-KR (CP949) and UTF-16 files open correctly; the status bar shows the encoding and line endings (LF/CRLF). Files are saved as UTF-8, with a confirmation the first time
 - **Drag and drop**: drop a `.md`, `.html` or `.txt` file on the window to open it
 - **Links** (`⌘K`), **themes** (View → Theme: system / light / dark)

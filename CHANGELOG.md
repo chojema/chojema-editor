@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-29
+
 ### Added
 - 상태 표시줄의 글자 크기 − / + 버튼. 텍스트 문서와 소스 화면의 글자 크기도 함께 바뀜.
 - 선택 시 복사(상태 표시줄 버튼, 편집 메뉴): 켜면 선택하는 즉시 클립보드에 복사하고 "복사됨"을 잠깐 표시. 설정은 모든 창에 함께 적용되고 기억됨.
@@ -50,6 +52,7 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/chojema/chojema-editor/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/chojema/chojema-editor/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/chojema/chojema-editor/releases/tag/v0.1.0

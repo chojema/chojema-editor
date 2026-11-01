@@ -5,6 +5,12 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-01
+
+### Added
+- SVG 편집: `.svg` 파일 열기·저장과 새 문서, 코드 문법 색상, 기본 나란히 보기에서 실시간 이미지 미리보기, XML 오류 안내, 보기 전환 중 실행 취소 유지. 데스크톱·웹 문서 메뉴에 연결.
+- JSON 편집: `.json` 파일을 트리·나란히·소스 화면으로 편집. 트리 좌측 원문 줄 번호 표시, 키 이름과 값 수정, 항목 추가·삭제·이동, 값 종류 변경, 키·값 찾기, 정렬·압축·키 정렬, 문법 오류 위치 표시. 고친 부분만 파일에 반영되어 숫자 표기(`1.0`, 큰 정수)·이스케이프·키 순서·줄바꿈 방식이 유지됨.
+
 ## [0.5.0] - 2026-10-29
 
 ### Added
@@ -75,7 +81,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/chojema/chojema-editor/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/chojema/chojema-editor/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/chojema/chojema-editor/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/chojema/chojema-editor/compare/v0.2.0...v0.3.0

@@ -1,7 +1,7 @@
 {
   "name": "chojema-editor",
   "productName": "Chojema Editor",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Text editor with WYSIWYG Markdown and HTML editing",
   "author": "Chulwoo Park",
   "homepage": "https://github.com/chojema/chojema-editor#readme",
@@ -33,8 +33,10 @@
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/commands": "^6.11.0",
     "@codemirror/lang-html": "^6.4.12",
+    "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-markdown": "^6.3.4",
     "@codemirror/language": "^6.12.4",
+    "@codemirror/lint": "^6.9.7",
     "@codemirror/search": "^6.7.2",
     "@codemirror/state": "^6.7.4",
     "@codemirror/view": "^6.43.11",
@@ -128,6 +130,13 @@
     "fileAssociations": [
       {
         "ext": [
+          "svg"
+        ],
+        "name": "SVG",
+        "role": "Editor"
+      },
+      {
+        "ext": [
           "md",
           "markdown"
         ],
@@ -147,6 +156,13 @@
           "txt"
         ],
         "name": "Text",
+        "role": "Editor"
+      },
+      {
+        "ext": [
+          "json"
+        ],
+        "name": "JSON",
         "role": "Editor"
       }
     ],

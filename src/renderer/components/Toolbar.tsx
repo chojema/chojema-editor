@@ -352,6 +352,26 @@ function ColorButton({
 }
 
 /** the formatting row above the Markdown and HTML visual editors */
+export function ViewModeSwitch({ mode, onMode }: { mode: ViewMode; onMode: (mode: ViewMode) => void }) {
+  return (
+    <div className="tb-modes" role="group" aria-label={t('viewMode')}>
+      {MODES.map((m) => (
+        <button
+          key={m.mode}
+          type="button"
+          className={`tb-mode${mode === m.mode ? ' is-active' : ''}`}
+          title={t(m.tip)}
+          aria-pressed={mode === m.mode}
+          onClick={() => onMode(m.mode)}
+        >
+          {m.mode === 'source' && <IconSourceCode size={15} />}
+          <span>{t(m.label)}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function Toolbar({
   editor,
   kind,
@@ -574,21 +594,7 @@ export function Toolbar({
       <Btn label={t('outlineTip')} active={outlineOpen} disabled={mode === 'source'} onClick={onToggleOutline}>
         <IconOutlineView size={18} />
       </Btn>
-      <div className="tb-modes" role="group" aria-label={t('viewMode')}>
-        {MODES.map((m) => (
-          <button
-            key={m.mode}
-            type="button"
-            className={`tb-mode${mode === m.mode ? ' is-active' : ''}`}
-            title={t(m.tip)}
-            aria-pressed={mode === m.mode}
-            onClick={() => onMode(m.mode)}
-          >
-            {m.mode === 'source' && <IconSourceCode size={15} />}
-            <span>{t(m.label)}</span>
-          </button>
-        ))}
-      </div>
+      <ViewModeSwitch mode={mode} onMode={onMode} />
     </div>
   )
 }

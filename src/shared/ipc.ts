@@ -7,12 +7,14 @@ import type { TextEncoding } from './encoding'
 export const MAX_PASTED_IMAGE_BYTES = 20 * 1024 * 1024
 
 /** which editing surface a document opens on */
-export type DocKind = 'text' | 'markdown' | 'html'
+export type DocKind = 'text' | 'markdown' | 'html' | 'json' | 'svg'
 
 export function docKindForPath(path: string | null | undefined): DocKind {
   const ext = (path ?? '').toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? ''
   if (ext === 'md' || ext === 'markdown' || ext === 'mdown' || ext === 'mkd') return 'markdown'
   if (ext === 'html' || ext === 'htm' || ext === 'xhtml') return 'html'
+  if (ext === 'svg') return 'svg'
+  if (ext === 'json') return 'json'
   return 'text'
 }
 
@@ -20,6 +22,8 @@ export const DEFAULT_EXTENSION: Record<DocKind, string> = {
   text: 'txt',
   markdown: 'md',
   html: 'html',
+  json: 'json',
+  svg: 'svg',
 }
 
 /** what a window starts with: a file from disk, or an untitled document of a kind */

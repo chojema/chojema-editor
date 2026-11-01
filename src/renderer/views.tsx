@@ -34,6 +34,9 @@ interface Options {
   load: (text: string, undoable: boolean) => void
   onDirty: () => void
   onStats: (stats: DocStats) => void
+  /** text a source pane opens with, for a surface whose text is known before the first render */
+  defaultMode?: ViewMode
+  initialSource?: string
 }
 
 /**
@@ -43,17 +46,17 @@ interface Options {
  * Neither direction echoes back, because loading the visual editor emits no
  * update and writing the source is marked programmatic.
  */
-export function useViewModes({ prefKey, serialize, load, onDirty, onStats }: Options) {
+export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initialSource = '', defaultMode = 'visual' }: Options) {
   const [mode, setModeState] = useState<ViewMode>(() => {
     const saved = readPref(`chojema.view.${prefKey}`)
-    return saved === 'split' || saved === 'source' ? saved : 'visual'
+    return saved === 'split' || saved === 'source' || saved === 'visual' ? saved : defaultMode
   })
   const modeRef = useRef(mode)
   modeRef.current = mode
-  const [sourceSeed, setSourceSeed] = useState('')
+  const [sourceSeed, setSourceSeed] = useState(initialSource)
   const sourceRef = useRef<CodeEditorHandle>(null)
   /** the source text the visual editor currently reflects */
-  const syncedRef = useRef('')
+  const syncedRef = useRef(initialSource)
   const pendingSourceRef = useRef<string | null>(null)
   const sourceTimer = useRef<number | null>(null)
   const editorTimer = useRef<number | null>(null)
@@ -216,6 +219,7 @@ interface PanesProps {
   /** content of the visual pane (the editor canvas) */
   children: ReactNode
   /** shown above the source pane */
+  keepSourceMounted?: boolean
   sourceNote?: ReactNode
 }
 
@@ -231,6 +235,7 @@ export function Panes({
   visualClassName,
   children,
   sourceNote,
+  keepSourceMounted = false,
 }: PanesProps) {
   const { mode, sourceSeed, sourceRef, onSourceChange, lastPaneRef } = views
   const [ratio, setRatio] = useState(() => {
@@ -277,8 +282,8 @@ export function Panes({
 
   return (
     <div className={`panes panes-${mode}`} ref={containerRef}>
-      {mode !== 'visual' && (
-        <div className="pane pane-source" style={mode === 'split' ? { flexBasis: `${ratio * 100}%` } : undefined}>
+      {(mode !== 'visual' || keepSourceMounted) && (
+        <div className="pane pane-source" hidden={mode === 'visual'} style={mode === 'split' ? { flexBasis: `${ratio * 100}%` } : undefined}>
           {sourceNote}
           <CodeEditor
             ref={sourceRef}

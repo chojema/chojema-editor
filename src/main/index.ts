@@ -217,6 +217,8 @@ async function pickSavePath(win: BrowserWindow, doc: WindowDoc, kind: DocKind): 
     text: [{ name: mt('텍스트'), extensions: ['txt'] }],
     markdown: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
     html: [{ name: 'HTML', extensions: ['html', 'htm'] }],
+    json: [{ name: 'JSON', extensions: ['json'] }],
+    svg: [{ name: 'SVG', extensions: ['svg'] }],
   }[kind]
   const { canceled, filePath } = await dialog.showSaveDialog(win, {
     defaultPath: doc.path ?? untitledName(kind).replace(/\.[a-z]+$/, `.${ext}`),
@@ -252,7 +254,7 @@ async function writeDoc(
   doc.dirty = false
   doc.encoding = 'UTF-8'
   // Save As into another known format: the renderer reloads onto that surface
-  if (/\.(md|markdown|html?|txt)$/i.test(path)) doc.kind = docKindForPath(path)
+  if (/\.(md|markdown|html?|txt|json|svg)$/i.test(path)) doc.kind = docKindForPath(path)
   refreshTitle(win)
   app.addRecentDocument(path)
   return { ok: true, path, encoding: 'UTF-8' }
@@ -372,7 +374,7 @@ async function openWithDialog(): Promise<void> {
   const options: Electron.OpenDialogOptions = {
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: mt('지원 문서'), extensions: ['md', 'markdown', 'html', 'htm', 'txt'] },
+      { name: mt('지원 문서'), extensions: ['md', 'markdown', 'html', 'htm', 'txt', 'json', 'svg'] },
       { name: mt('모든 파일'), extensions: ['*'] },
     ],
   }
@@ -384,7 +386,7 @@ async function openWithDialog(): Promise<void> {
 }
 
 function kindLabel(kind: DocKind): string {
-  return kind === 'text' ? mt('텍스트') : kind === 'markdown' ? 'Markdown' : 'HTML'
+  return kind === 'text' ? mt('텍스트') : kind === 'markdown' ? 'Markdown' : kind === 'json' ? 'JSON' : kind === 'svg' ? 'SVG' : 'HTML'
 }
 
 /**
@@ -448,6 +450,8 @@ function buildMenu(): void {
         { label: mt('새 텍스트 문서'), accelerator: 'CmdOrCtrl+N', click: () => newDocument('text') },
         { label: mt('새 Markdown 문서'), accelerator: 'CmdOrCtrl+Shift+N', click: () => newDocument('markdown') },
         { label: mt('새 HTML 문서'), accelerator: 'CmdOrCtrl+Alt+N', click: () => newDocument('html') },
+        { label: mt('새 SVG 문서'), click: () => newDocument('svg') },
+        { label: mt('새 JSON 문서'), accelerator: 'CmdOrCtrl+Alt+J', click: () => newDocument('json') },
         { type: 'separator' },
         { label: mt('열기…'), accelerator: 'CmdOrCtrl+O', click: () => void openWithDialog() },
         { role: 'recentDocuments', label: mt('최근 문서'), submenu: [{ role: 'clearRecentDocuments', label: mt('목록 지우기') }] },
@@ -647,7 +651,7 @@ function registerIpc(): void {
         label: empty ? mt('이 창을 다음 문서로 바꾸기') : mt('새 창에서 시작'),
         enabled: false,
       },
-      ...(['text', 'markdown', 'html'] as const).map((kind) => ({
+      ...(['text', 'markdown', 'html', 'json', 'svg'] as const).map((kind) => ({
         label: `${kindLabel(kind)} ${mt('문서')}`,
         type: 'radio' as const,
         checked: doc.kind === kind,

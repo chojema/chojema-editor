@@ -13,6 +13,8 @@ export const mainText = {
   "새 텍스트 문서": "New Text Document",
   "새 Markdown 문서": "New Markdown Document",
   "새 HTML 문서": "New HTML Document",
+  "새 SVG 문서": "New SVG Document",
+  "새 JSON 문서": "New JSON Document",
   "열기…": "Open…",
   "최근 문서": "Open Recent",
   "목록 지우기": "Clear Menu",

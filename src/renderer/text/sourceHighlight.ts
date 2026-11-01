@@ -17,7 +17,7 @@ export const sourceHighlight = HighlightStyle.define([
   // shared by HTML, CSS and JavaScript
   { tag: [t.comment, t.lineComment, t.blockComment], color: 'var(--src-comment)', fontStyle: 'italic' },
   { tag: [t.string, t.special(t.string)], color: 'var(--src-string)' },
-  { tag: [t.number, t.bool, t.atom, t.unit], color: 'var(--src-number)' },
+  { tag: [t.number, t.bool, t.null, t.atom, t.unit], color: 'var(--src-number)' },
   { tag: [t.keyword, t.operatorKeyword, t.modifier, t.controlKeyword], color: 'var(--src-keyword)' },
   { tag: [t.propertyName, t.definition(t.propertyName)], color: 'var(--src-attr)' },
   { tag: [t.className, t.typeName, t.function(t.variableName)], color: 'var(--src-meta)' },

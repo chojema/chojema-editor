@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { autocompletion, closeBrackets, completionKeymap } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { html } from '@codemirror/lang-html'
+import { json } from '@codemirror/lang-json'
 import { markdown } from '@codemirror/lang-markdown'
 import {
   bracketMatching,
@@ -12,6 +13,7 @@ import {
 import { highlightSelectionMatches, openSearchPanel, search, searchKeymap } from '@codemirror/search'
 import { Annotation, Compartment, EditorState, type Extension } from '@codemirror/state'
 import { sourceHighlight } from './sourceHighlight'
+import { jsonLint } from '../json/jsonLint'
 import {
   drawSelection,
   EditorView,
@@ -25,7 +27,7 @@ import {
 /** marks setValue transactions so they are not reported as user edits */
 const programmatic = Annotation.define<boolean>()
 
-export type CodeLanguage = 'text' | 'markdown' | 'html'
+export type CodeLanguage = 'text' | 'markdown' | 'html' | 'json' | 'svg'
 
 export interface CodeEditorHandle {
   getValue(): string
@@ -34,6 +36,8 @@ export interface CodeEditorHandle {
   focus(): void
   hasFocus(): boolean
   openFind(): void
+  /** put the caret at a 1-based line and column and show it */
+  goTo(line: number, column: number): void
   scrollElement(): HTMLElement | null
 }
 
@@ -53,7 +57,7 @@ interface Props {
 
 /** completions pop up only where the language has something to offer (tags, attributes, values) */
 function completionExtension(language: CodeLanguage, on: boolean): Extension {
-  if (!on || language === 'text') return []
+  if (!on || language === 'text' || language === 'json') return []
   return [autocompletion({ icons: false, maxRenderedOptions: 40 }), keymap.of(completionKeymap)]
 }
 
@@ -65,7 +69,8 @@ function fontTheme(scale: number): Extension {
 
 function languageExtension(language: CodeLanguage): Extension {
   if (language === 'markdown') return markdown()
-  if (language === 'html') return html()
+  if (language === 'html' || language === 'svg') return html()
+  if (language === 'json') return [json(), jsonLint()]
   return []
 }
 
@@ -104,6 +109,7 @@ const theme = EditorView.theme({
     backgroundColor: 'var(--accent-soft)',
     color: 'var(--text)',
   },
+  '.cm-diagnostic-error': { borderLeftColor: 'var(--src-invalid)' },
   '.cm-completionMatchedText': { textDecoration: 'none', fontWeight: '700', color: 'var(--accent)' },
   '.cm-completionDetail': { color: 'var(--text-muted)', fontStyle: 'normal', marginLeft: '0.8em' },
 })
@@ -224,6 +230,14 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
     openFind() {
       const view = viewRef.current
       if (view) openSearchPanel(view)
+    },
+    goTo(line, column) {
+      const view = viewRef.current
+      if (!view) return
+      const target = view.state.doc.line(Math.min(line, view.state.doc.lines))
+      const anchor = Math.min(target.from + column - 1, target.to)
+      view.dispatch({ selection: { anchor }, scrollIntoView: true })
+      view.focus()
     },
   }))
 

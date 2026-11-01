@@ -2,7 +2,7 @@
 
 [한국어](README.md) | **English**
 
-A desktop editor for plain text, Markdown and HTML. Markdown and HTML are edited WYSIWYG (what you see is what you get).
+A desktop editor for plain text, Markdown, HTML, JSON and SVG. Markdown and HTML are edited WYSIWYG (what you see is what you get).
 
 ## Installation
 
@@ -17,7 +17,7 @@ Download the file for your system from [Releases](https://github.com/chojema/cho
 
 - **macOS**: open the DMG and drag the app into the Applications folder. If macOS blocks the first launch, Control-click the app in Finder and choose "Open", or click "Open Anyway" in System Settings → Privacy & Security.
 - **Windows**: the setup wizard lets you choose the install folder and needs no administrator rights. If "Windows protected your PC" appears, click "More info" → "Run anyway".
-- After installation, `.md`, `.markdown`, `.html`, `.htm` and `.txt` files can be opened with the app.
+- After installation, `.md`, `.markdown`, `.html`, `.htm`, `.txt`, `.json` and `.svg` files can be opened with the app.
 
 ## Features
 
@@ -26,6 +26,12 @@ Download the file for your system from [Releases](https://github.com/chojema/cho
 | `.txt` and others | Text editing (line numbers, find & replace, line wrapping) |
 | `.md` | WYSIWYG editing. Tables, task lists, math (LaTeX), Mermaid diagrams, footnotes, code syntax colors, `/` command menu, frontmatter editing |
 | `.html` | WYSIWYG editing. Font, size, color, alignment, sub/superscript, tables, images, links, code syntax colors |
+| `.json` | Tree editing: line numbers, edit keys and values, add, delete and move items, change value types, find, format, minify, sort keys, syntax error locations |
+| `.svg` | SVG source editing with a live image preview. Split view by default, syntax colors and error messages |
+
+### SVG editing
+
+Open a `.svg` file or choose File → New SVG Document to see source and image side by side. Source edits update the preview after a short pause. Preview-only and source-only views, adjustable pane widths, find & replace and undo are supported; saving preserves the SVG source. Invalid XML shows an error and renders again once corrected. The preview uses an image document, so scripts and external images/stylesheets are not loaded or executed.
 
 ### Views (Markdown and HTML)
 
@@ -43,7 +49,7 @@ The source pane colours tags, attributes, values and comments (with separate lig
 
 ### Changing the document type
 
-The app opens with an empty Markdown document. Click the document type at the left of the status bar (**Markdown ▾**), or choose New Text Document (`⌘N`), New Markdown Document (`⇧⌘N`) or New HTML Document (`⌥⌘N`) in the File menu. A window you have not typed in yet switches in place; a window with content or a saved file opens a new window instead.
+The app opens with an empty Markdown document. Click the document type at the left of the status bar (**Markdown ▾**), or choose New Text Document (`⌘N`), New Markdown Document (`⇧⌘N`) New HTML Document (`⌥⌘N`) or New JSON Document (`⌥⌘J`) in the File menu. A window you have not typed in yet switches in place; a window with content or a saved file opens a new window instead.
 
 ### More
 
@@ -54,7 +60,7 @@ The app opens with an empty Markdown document. Click the document type at the le
   - HTML → Markdown converts headings, emphasis, quotes, lists/tasks, code, links/images and tables. Merged or nested tables remain HTML inside Markdown. CSS, fonts, page layout, scripts and interactive elements are omitted.
   - Markdown export adjusts link and image paths relative to the output folder. Image files are referenced, not copied; include them when sharing the export. Relative paths in untitled HTML documents are kept as written.
 - **Legacy Korean files**: EUC-KR (CP949) and UTF-16 files open correctly; the status bar shows the encoding and line endings (LF/CRLF). Files are saved as UTF-8, with a confirmation the first time
-- **Drag and drop**: drop a `.md`, `.html` or `.txt` file on the window to open it
+- **Drag and drop**: drop a `.md`, `.html`, `.txt` or `.json` file on the window to open it
 - **Text size**: the **− 100% +** buttons at the right of the status bar (`⌘−` / `⌘=`, `⌘0` for actual size). Applies to text documents, the visual editor and the source pane
 - **Copy on select**: turn it on with the **Copy on select** button in the status bar or Edit → Copy on Select. Selected text then goes to the clipboard right away and a short "✓ Copied" tag appears; the visual editor copies formatting too
 - **Language** (View → Language: Follow System / 한국어 / English). Applies immediately to all windows while preserving your edits.
@@ -64,6 +70,7 @@ The app opens with an empty Markdown document. Click the document type at the le
 ### How the original text is preserved
 
 - **Markdown**: blocks you did not edit are saved exactly as they were on disk. Opening a file and saving it unchanged produces a byte-identical file. Frontmatter, line endings (CRLF) and the BOM are kept.
+- **JSON**: only what you change is written. Number spellings (`1.0`, large integers), string escapes, key order, indentation and line endings stay as they are. While the text has a syntax error the tree is read-only and you fix it in the source. JSON with comments (JSONC) is reported as an error.
 - **HTML**: only the inside of `<body>` is edited; `<head>` and the `<body>` tag stay exactly as written. The document's own CSS is applied to the editing canvas, so you edit the page as a browser shows it. class, id, style and data-* attributes and layout elements such as `<div>`/`<section>` are kept. Elements that cannot be edited visually, such as `<script>`, `<iframe>`, `<form>` and SVG, keep their original code; double-click one to edit its code.
 
 ### Limits of HTML editing

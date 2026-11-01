@@ -656,6 +656,256 @@ body.is-resizing .pane {
   min-height: 0;
 }
 
+.json-tb-text {
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.json-find,
+.json-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.json-find .tb-input {
+  width: 240px;
+}
+
+.json-find-count {
+  min-width: 48px;
+  color: var(--text-muted);
+}
+
+.json-error {
+  justify-content: space-between;
+  color: var(--src-invalid);
+  background: color-mix(in srgb, var(--src-invalid) 8%, transparent);
+}
+
+.json-scroll {
+  background: var(--surface);
+}
+
+.json-tree {
+  padding: 10px 0 80px;
+  font-family: 'SF Mono', Menlo, Consolas, 'D2Coding', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.json-tree.is-stale {
+  opacity: 0.55;
+}
+
+.json-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding-right: 8px;
+  min-height: 24px;
+  outline: none;
+}
+
+.json-row:hover,
+.json-row:focus-within {
+  background: var(--hover);
+}
+
+.json-row:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.json-row.is-match {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.json-row.is-current {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.json-line {
+  flex: none;
+  align-self: stretch;
+  width: calc(var(--json-gutter-digits, 3) * 1ch + 16px);
+  padding: 0 8px;
+  border-right: 1px solid var(--border);
+  color: var(--text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.json-row:focus-within .json-line {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.json-toggle {
+  flex: none;
+  width: 16px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+span.json-toggle {
+  cursor: default;
+}
+
+.json-key,
+.json-val {
+  padding: 0 3px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.json-key {
+  flex: none;
+  max-width: 45%;
+  color: var(--src-attr);
+}
+
+.json-key:hover:not(:disabled),
+button.json-val:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.json-key:disabled,
+.json-val:disabled {
+  cursor: default;
+}
+
+.json-index,
+.json-colon,
+.json-brace,
+.json-count {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.json-val {
+  min-width: 0;
+}
+
+.json-val-string {
+  color: var(--src-string);
+}
+
+.json-val-number,
+.json-val-boolean,
+.json-val-null {
+  color: var(--src-number);
+}
+
+button.json-val-boolean {
+  cursor: pointer;
+}
+
+.json-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.json-input {
+  flex: 1;
+  min-width: 80px;
+  padding: 0 3px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  outline: none;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  resize: none;
+}
+
+.json-key-input {
+  flex: 0 1 240px;
+}
+
+.json-input.is-invalid {
+  border-color: var(--src-invalid);
+}
+
+.json-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-left: 12px;
+  visibility: hidden;
+}
+
+.json-row:hover .json-actions,
+.json-row:focus-within .json-actions {
+  visibility: visible;
+}
+
+.json-type {
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 11px;
+}
+
+.json-action {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.json-action:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.json-action:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.json-more-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+}
+
+.json-more {
+  margin: 2px 0;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .source-note {
   padding: 5px 14px;
   border-bottom: 1px solid var(--border);
@@ -1020,3 +1270,15 @@ body.is-resizing .pane {
     opacity: 0;
   }
 }
+
+/* SVG uses an image document, so its styles and scripts cannot affect the editor. */
+.svg-label { padding: 0 8px; color: var(--text-muted); font-size: 12px; }
+.svg-preview {
+  padding: 24px;
+  background-color: #fff;
+  background-image: conic-gradient(#eee 25%, transparent 0 50%, #eee 0 75%, transparent 0);
+  background-size: 20px 20px;
+}
+.svg-image { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.svg-message { padding: 16px; color: var(--text); background: var(--surface); border-radius: 6px; }
+.svg-surface .pane[hidden] { display: none; }

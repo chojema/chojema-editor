@@ -5,6 +5,8 @@ import { htmlToMarkdown } from './html/toMarkdown'
 import { MarkdownSurface } from './markdown/MarkdownSurface'
 import { HtmlSurface } from './html/HtmlSurface'
 import { TextSurface } from './text/TextSurface'
+import { SvgSurface } from './svg/SvgSurface'
+import { JsonSurface } from './json/JsonSurface'
 import { ToastHost } from './components/toast'
 import { AutoCopy } from './components/AutoCopy'
 import { showToast } from './components/toast-bus'
@@ -15,6 +17,8 @@ const KIND_LABEL: Record<DocKind, StringKey> = {
   text: 'kindText',
   markdown: 'kindMarkdown',
   html: 'kindHtml',
+  json: 'kindJson',
+  svg: 'kindSvg',
 }
 
 const ZOOM_STEPS = [50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300]
@@ -22,7 +26,7 @@ const zoomIn = (value: number) => ZOOM_STEPS.find((step) => step > value) ?? val
 const zoomOut = (value: number) => [...ZOOM_STEPS].reverse().find((step) => step < value) ?? value
 
 /** files a drop on the window opens as documents (images go into the document instead) */
-const OPENABLE = /\.(md|markdown|mdown|mkd|html?|xhtml|txt)$/i
+const OPENABLE = /\.(md|markdown|mdown|mkd|html?|xhtml|txt|json|svg)$/i
 
 function readPref(key: string, fallback: string): string {
   try {
@@ -128,7 +132,7 @@ export function App() {
       if (result.path) {
         setPath(result.path)
         // Save As into another format reopens the file on the matching surface
-        if (docKindForPath(result.path) !== initial.kind && /\.(md|markdown|html?|txt)$/i.test(result.path)) {
+        if (docKindForPath(result.path) !== initial.kind && /\.(md|markdown|html?|txt|json|svg)$/i.test(result.path)) {
           window.location.reload()
           return true
         }
@@ -251,6 +255,8 @@ export function App() {
       {initial.kind === 'markdown' && <MarkdownSurface ref={surfaceRef} {...surfaceProps} />}
       {initial.kind === 'html' && <HtmlSurface ref={surfaceRef} {...surfaceProps} />}
       {initial.kind === 'text' && <TextSurface ref={surfaceRef} {...surfaceProps} />}
+      {initial.kind === 'svg' && <SvgSurface ref={surfaceRef} {...surfaceProps} />}
+      {initial.kind === 'json' && <JsonSurface ref={surfaceRef} {...surfaceProps} />}
       <footer className="status-bar">
         <button
           type="button"

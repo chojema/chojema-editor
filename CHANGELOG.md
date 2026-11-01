@@ -5,6 +5,11 @@
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-01
+
+### Fixed
+- macOS 설치 파일(`.dmg`)의 앱 번들에 ad-hoc 코드 서명이 누락되어 다운로드 후 실행할 때 Gatekeeper 손상 오류로 열리지 않던 문제.
+
 ## [0.7.0] - 2026-11-01
 
 ### Added
@@ -87,7 +92,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/chojema/chojema-editor/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/chojema/chojema-editor/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/chojema/chojema-editor/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/chojema/chojema-editor/compare/v0.4.0...v0.5.0

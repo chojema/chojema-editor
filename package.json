@@ -1,7 +1,7 @@
 {
   "name": "chojema-editor",
   "productName": "Chojema Editor",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Text editor with WYSIWYG Markdown and HTML editing",
   "author": "Chulwoo Park",
   "homepage": "https://github.com/chojema/chojema-editor#readme",
@@ -113,6 +113,8 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
+      "identity": "-",
+      "sign": "build/macSign.cjs",
       "target": [
         "dmg"
       ],

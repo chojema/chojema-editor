@@ -4,6 +4,7 @@
  * document, as each desktop window does.
  */
 
+import { RASTER_FORMATS, validRasterRequest } from '../shared/raster'
 import { mainText } from '../main/strings'
 import { decodeText, type TextEncoding } from '../shared/encoding'
 import {
@@ -351,6 +352,7 @@ function showMenu(): void {
     { label: mt('저장'), shortcut: `${MOD}S`, click: () => sendMenu('save') },
     { label: mt('다른 이름으로 저장…'), shortcut: `${MOD}${SHIFT}S`, click: () => sendMenu('saveAs') },
     { type: 'separator' },
+    { label: mt('이미지로 내보내기…'), enabled: session.kind === 'svg', click: () => sendMenu('exportImage') },
     { label: mt('HTML로 저장…'), click: () => sendMenu('exportHtml') },
     { label: mt('Markdown으로 저장…'), enabled: session.kind === 'html', click: () => sendMenu('exportMarkdown') },
     { label: mt('서식 있는 텍스트로 복사'), click: () => sendMenu('copyRich') },
@@ -468,6 +470,15 @@ function createWebApi(): EditorApi {
     },
     exportMarkdown: (request) =>
       exportFile('md', markdownForWeb(request), { description: 'Markdown', mime: 'text/markdown' }),
+    async exportRaster(request) {
+      if (session.kind !== 'svg' || !validRasterRequest(request)) return { ok: false, error: 'Invalid image' }
+      try {
+        const name = exportName(request.format)
+        const mime = RASTER_FORMATS[request.format].mime
+        download(name, new Blob([new Uint8Array(request.bytes)], { type: mime }), mime)
+        return { ok: true, path: name }
+      } catch (error) { return { ok: false, error: String(error) } }
+    },
     exportHtml: (request) => exportFile('html', request.html, { description: 'HTML', mime: 'text/html' }),
     // browsers make PDFs only through the print dialog ("Save as PDF")
     async exportPdf(request) {

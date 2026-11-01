@@ -22,6 +22,7 @@ export const mainText = {
   "내보내기": "Export",
   "Markdown으로 저장…": "Save as Markdown…",
   "원본과 다른 파일을 선택해 주세요.": "Please choose a different file from the source document.",
+  "이미지로 내보내기…": "Export as Image…",
   "HTML로 저장…": "Save as HTML…",
   "서식 있는 텍스트로 복사": "Copy Rich Text",
   "PDF로 내보내기…": "Export as PDF…",

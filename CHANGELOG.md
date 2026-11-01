@@ -5,6 +5,11 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-01
+
+### Added
+- SVG 이미지 내보내기: PNG·JPG·WebP, PNG·WebP 투명 배경, 배경색·1–4배 배율·JPG/WebP 품질 설정. 툴바·파일 메뉴에서 최신 소스를 별도 이미지로 저장하며 웹에서는 다운로드.
+
 ## [0.6.0] - 2026-11-01
 
 ### Added
@@ -82,7 +87,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/chojema/chojema-editor/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/chojema/chojema-editor/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/chojema/chojema-editor/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/chojema/chojema-editor/compare/v0.3.0...v0.4.0

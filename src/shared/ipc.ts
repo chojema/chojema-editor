@@ -1,5 +1,6 @@
 /** Contract between the main process, the preload bridge and the renderer. */
 
+import type { RasterExportRequest } from './raster'
 import type { Language } from './language'
 import type { TextEncoding } from './encoding'
 
@@ -79,6 +80,7 @@ export type MenuCommand =
   | 'zoomOut'
   | 'zoomReset'
   | 'toggleWrap'
+  | 'exportImage'
   | 'exportHtml'
   | 'exportMarkdown'
   | 'exportPdf'
@@ -105,6 +107,7 @@ export interface EditorApi {
   pathForFile(file: File): string
   /** save a standalone HTML page next to wherever the user picks */
   exportMarkdown(request: MarkdownExportRequest): Promise<SaveResult>
+  exportRaster(request: RasterExportRequest): Promise<SaveResult>
   exportHtml(request: ExportRequest): Promise<SaveResult>
   exportPdf(request: ExportRequest): Promise<SaveResult>
   print(request: ExportRequest): Promise<void>
@@ -130,6 +133,7 @@ export const IPC = {
   readAsset: 'doc:read-asset',
   openPaths: 'doc:open-paths',
   kindMenu: 'doc:kind-menu',
+  exportRaster: 'export:raster',
   exportHtml: 'export:html',
   exportMarkdown: 'export:markdown',
   exportPdf: 'export:pdf',

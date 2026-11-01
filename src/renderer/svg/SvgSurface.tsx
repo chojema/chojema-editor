@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import { SvgExportDialog } from './SvgExportDialog'
 import { ViewModeSwitch } from '../components/Toolbar'
 import { t } from '../i18n/locale'
 import { statsOf, type SurfaceHandle, type SurfaceProps } from '../surface'
@@ -9,6 +10,7 @@ import { svgImageHtml, svgPreviewUrl } from './svgDocument'
 export const SvgSurface = forwardRef<SurfaceHandle, SurfaceProps>(function SvgSurface(
   { initialContent, wrap, zoom, autoComplete, onDirty, onStats }, ref,
 ) {
+  const [exportSource, setExportSource] = useState<string | null>(null)
   const [text, setText] = useState(initialContent)
   const textRef = useRef(initialContent)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -23,6 +25,9 @@ export const SvgSurface = forwardRef<SurfaceHandle, SurfaceProps>(function SvgSu
     prefKey: 'svg', serialize, load, onDirty, onStats,
     initialSource: initialContent, defaultMode: 'split',
   })
+  useEffect(() => window.editorApi.onMenuCommand(command => {
+    if (command === 'exportImage') setExportSource(views.getContent())
+  }), [views.getContent])
   const url = useMemo(() => svgPreviewUrl(text), [text])
   useEffect(() => onStats({ ...statsOf(text), lines: text.split('\n').length }), [text, onStats])
   useEffect(() => {
@@ -53,9 +58,11 @@ export const SvgSurface = forwardRef<SurfaceHandle, SurfaceProps>(function SvgSu
     <div className="surface svg-surface">
       <div className="toolbar">
         <span className="svg-label">{t('svgPreview')}</span>
+        <button type="button" className="svg-export-button" onClick={() => setExportSource(views.getContent())}>{t('svgExport')}</button>
         <span className="tb-spacer" />
         <ViewModeSwitch mode={views.mode} onMode={views.setMode} />
       </div>
+      {exportSource !== null && <SvgExportDialog source={exportSource} onClose={() => setExportSource(null)} />}
       <Panes views={views} prefKey="svg" language="svg" wrap={wrap} zoom={zoom}
         completion={autoComplete} visualScrollRef={scrollRef} visualClassName="svg-preview" keepSourceMounted>
         {!text.trim() ? <p className="svg-message">{t('svgEmpty')}</p> :

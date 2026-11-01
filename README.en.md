@@ -53,6 +53,8 @@ The web version can only do what the browser allows, so some things differ from 
 
 ### SVG editing
 
+Choose **Export as Image…** in the toolbar or File → Export to save PNG, JPG or WebP. PNG and WebP support transparent backgrounds; JPG uses the selected background color. Choose 1–4× scale and JPG/WebP quality (1–100). Backgrounds drawn inside the SVG are preserved. The web version downloads the image file.
+
 Open a `.svg` file or choose File → New SVG Document to see source and image side by side. Source edits update the preview after a short pause. Preview-only and source-only views, adjustable pane widths, find & replace and undo are supported; saving preserves the SVG source. Invalid XML shows an error and renders again once corrected. The preview uses an image document, so scripts and external images/stylesheets are not loaded or executed.
 
 ### Views (Markdown and HTML)

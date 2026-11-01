@@ -14,6 +14,7 @@ const api: EditorApi = {
   openPaths: (paths) => ipcRenderer.send(IPC.openPaths, paths),
   pathForFile: (file) => webUtils.getPathForFile(file),
   exportMarkdown: (request) => ipcRenderer.invoke(IPC.exportMarkdown, request),
+  exportRaster: (request) => ipcRenderer.invoke(IPC.exportRaster, request),
   exportHtml: (request) => ipcRenderer.invoke(IPC.exportHtml, request),
   exportPdf: (request) => ipcRenderer.invoke(IPC.exportPdf, request),
   print: (request) => ipcRenderer.invoke(IPC.print, request),

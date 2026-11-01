@@ -18,6 +18,7 @@ import {
 } from '../shared/ipc'
 import { resolveLanguage, type LanguagePreference } from '../shared/language'
 import { markdownForDestination } from './markdownExport'
+import { RASTER_FORMATS, validRasterRequest, type RasterExportRequest } from '../shared/raster'
 import { mainText } from './strings'
 import { decodeText, type TextEncoding } from '../shared/encoding'
 
@@ -428,6 +429,8 @@ function updateExportMenu(): void {
   const item = Menu.getApplicationMenu()?.getMenuItemById('exportMarkdown')
   const win = BrowserWindow.getFocusedWindow()
   if (item) item.enabled = !!win && docs.get(win.id)?.kind === 'html'
+  const imageItem = Menu.getApplicationMenu()?.getMenuItemById('exportImage')
+  if (imageItem) imageItem.enabled = !!win && docs.get(win.id)?.kind === 'svg'
 }
 
 function buildMenu(): void {
@@ -462,6 +465,7 @@ function buildMenu(): void {
         {
           label: mt('내보내기'),
           submenu: [
+            { id: 'exportImage', label: mt('이미지로 내보내기…'), click: () => sendMenu('exportImage') },
             { label: mt('HTML로 저장…'), click: () => sendMenu('exportHtml') },
             { id: 'exportMarkdown', label: mt('Markdown으로 저장…'), click: () => sendMenu('exportMarkdown') },
             { label: mt('서식 있는 텍스트로 복사'), click: () => sendMenu('copyRich') },
@@ -663,6 +667,23 @@ function registerIpc(): void {
   ipcMain.on(IPC.openPaths, (_event, paths: unknown) => {
     if (!Array.isArray(paths)) return
     for (const path of paths) if (typeof path === 'string' && existsSync(path)) openPath(path)
+  })
+
+  ipcMain.handle(IPC.exportRaster, async (event, request: RasterExportRequest): Promise<SaveResult> => {
+    const found = docFor(event.sender)
+    if (!found || found.doc.kind !== 'svg' || !validRasterRequest(request)) return { ok: false, error: 'Invalid image' }
+    try {
+      const { canceled, filePath } = await dialog.showSaveDialog(found.win, {
+        defaultPath: exportName(found.doc, request.format),
+        filters: [{ name: RASTER_FORMATS[request.format].label, extensions: [request.format] }],
+      })
+      if (canceled || !filePath) return { ok: false }
+      if (found.doc.path && resolve(filePath) === resolve(found.doc.path)) {
+        return { ok: false, error: mt('원본과 다른 파일을 선택해 주세요.') }
+      }
+      await writeFile(filePath, request.bytes)
+      return { ok: true, path: filePath }
+    } catch (error) { return { ok: false, error: String(error) } }
   })
 
   ipcMain.handle(IPC.exportHtml, async (event, request: ExportRequest): Promise<SaveResult> => {

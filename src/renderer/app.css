@@ -1282,3 +1282,18 @@ button.json-val-boolean {
 .svg-image { display: block; max-width: 100%; height: auto; margin: 0 auto; }
 .svg-message { padding: 16px; color: var(--text); background: var(--surface); border-radius: 6px; }
 .svg-surface .pane[hidden] { display: none; }
+
+.svg-export-button { border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); padding: 5px 10px; cursor: pointer; }
+.svg-export-dialog { width: min(360px, calc(100vw - 48px)); border: 1px solid var(--border); border-radius: 12px; padding: 24px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-menu); }
+.svg-export-dialog::backdrop { background: #0006; }
+.svg-export-dialog h2 { font-size: 18px; margin: 0 0 20px; }
+.svg-export-dialog fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 12px; }
+.svg-export-dialog label { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.svg-export-dialog select, .svg-export-dialog input[type=number] { width: 110px; padding: 4px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+.svg-export-dialog .svg-export-check { justify-content: flex-start; }
+.svg-export-dialog output, .svg-export-note { font-size: 12px; color: var(--text-muted); }
+.svg-export-dialog [role=alert] { color: var(--src-invalid); font-size: 13px; }
+.svg-export-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.svg-export-actions button { padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); cursor: pointer; }
+.svg-export-actions button[type=submit] { background: var(--accent); color: white; }
+.svg-export-dialog :disabled { opacity: .5; cursor: default; }

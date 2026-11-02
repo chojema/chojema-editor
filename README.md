@@ -4,7 +4,16 @@
 
 일반 텍스트, Markdown, HTML, JSON, SVG를 편집하는 편집기입니다. Windows·macOS 앱과 [웹 버전](#웹-버전)이 있습니다. Markdown과 HTML은 위지위그(보이는 그대로) 방식으로 편집합니다.
 
+**Windows 실행 화면 (v0.7.2)**
+
+![Chojema Editor Windows 실행 화면: 실시간 미리보기와 문서 종류 메뉴 (v0.7.2)](Screenshot/2026-11-02_12-57-56.png)
+
+<details>
+<summary>macOS 실행 화면 (v0.7.1)</summary>
+
 ![Chojema Editor macOS 실행 화면 (v0.7.1)](Screenshot/2026-11-01_15-46-07.png)
+
+</details>
 
 ## 설치
 

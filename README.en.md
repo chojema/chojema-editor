@@ -4,7 +4,16 @@
 
 An editor for plain text, Markdown, HTML, JSON and SVG, available as a Windows and macOS app and as a [web version](#web-version). Markdown and HTML are edited WYSIWYG (what you see is what you get).
 
+**Windows app (v0.7.2)**
+
+![Chojema Editor on Windows: Live Preview and document-type menu (v0.7.2)](Screenshot/2026-11-02_12-57-56.png)
+
+<details>
+<summary>macOS app (v0.7.1)</summary>
+
 ![Chojema Editor on macOS (v0.7.1)](Screenshot/2026-11-01_15-46-07.png)
+
+</details>
 
 ## Installation
 

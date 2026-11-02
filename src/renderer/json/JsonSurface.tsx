@@ -95,6 +95,19 @@ export const JsonSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Json
   const undo = useCallback(() => step(undoStack, redoStack), [step])
   const redo = useCallback(() => step(redoStack, undoStack), [step])
 
+  const history = (direction: 'undo' | 'redo') => {
+    if (views.mode === 'source' || views.lastPaneRef.current === 'source') views.sourceHistory(direction)
+    else { views.activate('visual'); (direction === 'undo' ? undo : redo)() }
+  }
+
+  // Save/export shortcuts run before a text field blurs. Commit that field
+  // synchronously so the snapshot contains the value currently being typed.
+  const getContent = () => {
+    const field = document.activeElement
+    if (field instanceof HTMLTextAreaElement && scrollRef.current?.contains(field)) field.blur()
+    return views.getContent()
+  }
+
   // the tree has no native undo; fields and the source pane keep their own
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -180,7 +193,9 @@ export const JsonSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Json
   useImperativeHandle(
     ref,
     () => ({
-      getContent: views.getContent,
+      getContent,
+      undo: () => history('undo'),
+      redo: () => history('redo'),
       markSaved() {
         views.settle()
       },
@@ -202,10 +217,11 @@ export const JsonSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Json
       },
       // JSON has no headings to outline
       toggleOutline: () => {},
-      exportPage: async () => ({ html: textPage(views.getContent(), title(path)), baseDir: null }),
+      exportPage: async () => ({ html: textPage(getContent(), title(path)), baseDir: null }),
       richCopy: async () => {
-        const page = textPage(views.getContent(), title(path))
-        return { html: page.slice(page.indexOf('<pre>'), page.indexOf('</pre>') + 6), text: views.getContent() }
+        const text = getContent()
+        const page = textPage(text, title(path))
+        return { html: page.slice(page.indexOf('<pre>'), page.indexOf('</pre>') + 6), text }
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -218,10 +234,10 @@ export const JsonSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Json
   return (
     <div className="surface">
       <div className="toolbar" role="toolbar">
-        <button type="button" className="tb-btn" title={t('undo')} aria-label={t('undo')} disabled={inSourceOnly || undoStack.current.length === 0} onClick={undo}>
+        <button type="button" className="tb-btn" title={t('undo')} aria-label={t('undo')} disabled={views.activePane === 'source' ? !views.sourceSelection.canUndo : undoStack.current.length === 0} onMouseDown={e => e.preventDefault()} onClick={() => history('undo')}>
           ↶
         </button>
-        <button type="button" className="tb-btn" title={t('redo')} aria-label={t('redo')} disabled={inSourceOnly || redoStack.current.length === 0} onClick={redo}>
+        <button type="button" className="tb-btn" title={t('redo')} aria-label={t('redo')} disabled={views.activePane === 'source' ? !views.sourceSelection.canRedo : redoStack.current.length === 0} onMouseDown={e => e.preventDefault()} onClick={() => history('redo')}>
           ↷
         </button>
         <span className="tb-sep" aria-hidden />

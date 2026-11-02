@@ -5,6 +5,8 @@ import type { ViewMode } from './views'
 export interface SurfaceHandle {
   /** the full file text as it would be written now */
   getContent(): string
+  undo(): void
+  redo(): void
   /** the text just written to disk becomes the new baseline for "unchanged" */
   markSaved(content: string): void
   setMode(mode: ViewMode): void

@@ -24,6 +24,7 @@ import { Panes, useViewModes } from '../views'
 import { useOutlinePref } from '../components/useOutlinePref'
 import { markdownPage, renderedMarkdownBody, titleFor } from '../exportPage'
 import { t } from '../i18n/locale'
+import { useSourceCommands, type RunEditorAction } from '../sourceCommands'
 
 /**
  * Markdown visual editor (TipTap) with source and side-by-side views. Saving
@@ -40,6 +41,7 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
   const sourceMapRef = useRef<SourceMap | null>(null)
   const originalRef = useRef<MarkdownSourceSnapshot | undefined>(undefined)
   const pathRef = useRef(path)
+  const runCommandRef = useRef<RunEditorAction>(() => false)
   pathRef.current = path
   const onDirtyRef = useRef(onDirty)
   onDirtyRef.current = onDirty
@@ -59,7 +61,7 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
     void (async () => {
       const src = await window.editorApi.pickImage()
       const current = editorRef.current
-      if (src && current) uiOp(current, { op: 'insertImage', after: 'selection', src })
+      if (src && current) runCommandRef.current(e => uiOp(e, { op: 'insertImage', after: 'selection', src }))
     })()
   }, [])
 
@@ -122,7 +124,9 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
     )
   }, [editor, initialContent])
 
-  const views = useViewModes({ prefKey: 'markdown', serialize, load, onDirty, onStats })
+  const views = useViewModes({ prefKey: 'markdown', serialize, load, onDirty, onStats, initialSource: initialContent })
+  const commands = useSourceCommands(editor, 'markdown', views)
+  runCommandRef.current = commands.run
   editorUpdateRef.current = views.onEditorUpdate
 
   useEffect(() => {
@@ -147,6 +151,8 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
     ref,
     () => ({
       getContent: views.getContent,
+      undo: () => commands.history('undo'),
+      redo: () => commands.history('redo'),
       markSaved(content) {
         if (views.mode === 'source' || !editor || !envelopeRef.current) return
         views.settle()
@@ -191,6 +197,10 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
         onToggleOutline={() => setOutlineOpen(!outlineOpen)}
         onSave={onSave}
         onInsertImage={insertImage}
+        runCommand={commands.run}
+        onReturnFocus={commands.focus}
+        onHistory={commands.history}
+        sourceHistory={views.activePane === 'source' ? views.sourceSelection : undefined}
       />
       {find && editor && views.mode !== 'source' && (
         <FindBar editor={editor} withReplace={find.replace} onClose={() => setFind(null)} />
@@ -224,7 +234,7 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
         </Panes>
       </div>
       <SlashMenu ref={slashMenuRef} state={slashState} onDismiss={() => setSlashState(null)} />
-      {views.mode !== 'source' && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} />}
+      {views.mode !== 'source' && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} active={views.activePane === 'visual'} />}
     </div>
   )
 })

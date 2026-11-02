@@ -54,6 +54,11 @@ describe('HTML to Markdown export', () => {
 })
 
 describe('Markdown export asset references', () => {
+  it('rebases Windows editor image URLs regardless of the test host', () => {
+    const md = markdownForDestination(htmlToMarkdown('<img src="md-asset:///C:/docs/assets/a.png">'), 'C:\\docs\\page.html', 'C:\\exports\\page.md')
+    expect(md).toContain('../docs/assets/a.png')
+    expect(md).not.toContain('md-asset:')
+  })
   it('rebases references relative to the selected destination and escapes special characters', () => {
     const request = htmlToMarkdown('<p><a href="guide.html?q=1#intro">guide</a><img src="assets/a (1).png"><a href="#here">here</a></p>')
     const md = markdownForDestination(request, '/docs/page.html', '/exports/page.md')

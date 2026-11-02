@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { CodeEditor, type CodeEditorHandle, type CodeLanguage } from './text/CodeEditor'
+import { CodeEditor, type CodeEditorHandle, type CodeLanguage, type SourceSelection } from './text/CodeEditor'
 import { statsOf, type DocStats } from './surface'
 
 /** how a Markdown or HTML document is shown */
@@ -58,17 +58,21 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initi
   /** the source text the visual editor currently reflects */
   const syncedRef = useRef(initialSource)
   const pendingSourceRef = useRef<string | null>(null)
-  const sourceTimer = useRef<number | null>(null)
-  const editorTimer = useRef<number | null>(null)
+  const pending = useRef<'source' | 'visual' | null>(null)
+  const timer = useRef<number | null>(null)
   /** which pane the user worked in last, for find and focus */
   const lastPaneRef = useRef<'visual' | 'source'>('visual')
+  const [activePane, setActivePane] = useState<'visual' | 'source'>(mode === 'source' ? 'source' : 'visual')
+  const [sourceSelection, setSourceSelection] = useState<SourceSelection>({ from: 0, to: 0, canUndo: false, canRedo: false })
 
   const fns = useRef({ serialize, load, onDirty, onStats })
   fns.current = { serialize, load, onDirty, onStats }
 
   const flushSource = useCallback(() => {
-    if (sourceTimer.current) window.clearTimeout(sourceTimer.current)
-    sourceTimer.current = null
+    if (pending.current !== 'source') return
+    if (timer.current !== null) window.clearTimeout(timer.current)
+    timer.current = null
+    pending.current = null
     const text = pendingSourceRef.current
     pendingSourceRef.current = null
     if (text === null || text === syncedRef.current) return
@@ -76,25 +80,43 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initi
     syncedRef.current = text
   }, [])
 
-  const flushEditor = useCallback(() => {
-    if (editorTimer.current) window.clearTimeout(editorTimer.current)
-    if (editorTimer.current === null) return
-    editorTimer.current = null
+  const flushEditor = useCallback((addToHistory = false) => {
+    if (pending.current !== 'visual') return
+    if (timer.current !== null) window.clearTimeout(timer.current)
+    timer.current = null
+    pending.current = null
     const text = fns.current.serialize()
     syncedRef.current = text
-    sourceRef.current?.setValue(text)
+    sourceRef.current?.setValue(text, addToHistory)
   }, [])
+
+  const settle = useCallback(() => {
+    flushSource()
+    flushEditor()
+  }, [flushSource, flushEditor])
+
+  // Settle the previous writer BEFORE the other editor handles a pointer or
+  // focus event. Its next transaction must start from the current document.
+  const activate = useCallback((pane: 'source' | 'visual') => {
+    if (pane === 'source') flushEditor()
+    else flushSource()
+    lastPaneRef.current = pane
+    setActivePane(pane)
+  }, [flushSource, flushEditor])
 
   useEffect(
     () => () => {
-      if (sourceTimer.current) window.clearTimeout(sourceTimer.current)
-      if (editorTimer.current) window.clearTimeout(editorTimer.current)
+      if (timer.current !== null) window.clearTimeout(timer.current)
     },
     [],
   )
 
   /** after the surface loads a file: give an open source pane the same text */
   const reseed = useCallback(() => {
+    if (timer.current !== null) window.clearTimeout(timer.current)
+    timer.current = null
+    pending.current = null
+    pendingSourceRef.current = null
     const text = fns.current.serialize()
     syncedRef.current = text
     if (sourceRef.current) sourceRef.current.setValue(text)
@@ -105,57 +127,54 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initi
     (next: ViewMode) => {
       const current = modeRef.current
       if (next === current) return
+      settle()
       if (current === 'visual') {
         const text = fns.current.serialize()
         syncedRef.current = text
         setSourceSeed(text)
-      } else {
-        flushEditor()
-        if (sourceRef.current) pendingSourceRef.current = sourceRef.current.getValue()
-        flushSource()
+        sourceRef.current?.setValue(text)
       }
       modeRef.current = next
       setModeState(next)
       writePref(`chojema.view.${prefKey}`, next)
     },
-    [flushEditor, flushSource, prefKey],
+    [settle, prefKey],
   )
 
   /** the surface calls this from the visual editor's update handler */
   const onEditorUpdate = useCallback(() => {
-    lastPaneRef.current = 'visual'
-    if (modeRef.current !== 'split') return
-    if (editorTimer.current) window.clearTimeout(editorTimer.current)
-    editorTimer.current = window.setTimeout(flushEditor, SYNC_DELAY_MS)
+    pending.current = 'visual'
+    pendingSourceRef.current = null
+    if (timer.current !== null) window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => flushEditor(), SYNC_DELAY_MS)
   }, [flushEditor])
 
   const onSourceChange = useCallback(
     (text: string) => {
       fns.current.onDirty()
       fns.current.onStats(statsOf(text))
-      if (modeRef.current !== 'split') {
-        pendingSourceRef.current = text
-        return
-      }
       pendingSourceRef.current = text
-      if (sourceTimer.current) window.clearTimeout(sourceTimer.current)
-      sourceTimer.current = window.setTimeout(flushSource, SYNC_DELAY_MS)
+      pending.current = 'source'
+      if (timer.current !== null) window.clearTimeout(timer.current)
+      timer.current = modeRef.current === 'split' ? window.setTimeout(flushSource, SYNC_DELAY_MS) : null
     },
     [flushSource],
   )
 
   /** the text a save writes: the source pane when it is open, else the visual editor */
   const getContent = useCallback((): string => {
+    settle()
     if (modeRef.current === 'visual') return fns.current.serialize()
-    flushEditor()
     return sourceRef.current?.getValue() ?? syncedRef.current
-  }, [flushEditor])
+  }, [settle])
 
-  /** settle pending syncs so the visual editor matches the source (before a save baseline) */
-  const settle = useCallback(() => {
-    flushEditor()
-    if (modeRef.current !== 'visual') flushSource()
-  }, [flushEditor, flushSource])
+  const sourceHistory = useCallback((direction: 'undo' | 'redo') => {
+    settle()
+    const changed = sourceRef.current?.[direction]() ?? false
+    flushSource()
+    sourceRef.current?.focus()
+    return changed
+  }, [settle, flushSource])
 
   return {
     mode,
@@ -168,6 +187,12 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initi
     getContent,
     settle,
     lastPaneRef,
+    activePane: mode === 'source' ? 'source' as const : activePane,
+    activate,
+    sourceSelection,
+    onSourceSelection: setSourceSelection,
+    flushEditor,
+    sourceHistory,
   }
 }
 
@@ -237,7 +262,7 @@ export function Panes({
   sourceNote,
   keepSourceMounted = false,
 }: PanesProps) {
-  const { mode, sourceSeed, sourceRef, onSourceChange, lastPaneRef } = views
+  const { mode, sourceSeed, sourceRef, onSourceChange } = views
   const [ratio, setRatio] = useState(() => {
     const saved = Number(readPref(`chojema.split.${prefKey}`))
     return saved >= 0.2 && saved <= 0.8 ? saved : 0.5
@@ -283,7 +308,8 @@ export function Panes({
   return (
     <div className={`panes panes-${mode}`} ref={containerRef}>
       {(mode !== 'visual' || keepSourceMounted) && (
-        <div className="pane pane-source" hidden={mode === 'visual'} style={mode === 'split' ? { flexBasis: `${ratio * 100}%` } : undefined}>
+        <div className="pane pane-source" hidden={mode === 'visual'} style={mode === 'split' ? { flexBasis: `${ratio * 100}%` } : undefined}
+          onPointerDownCapture={() => views.activate('source')} onFocusCapture={() => views.activate('source')}>
           {sourceNote}
           <CodeEditor
             ref={sourceRef}
@@ -293,7 +319,8 @@ export function Panes({
             fontScale={zoom / 100}
             completion={completion}
             onChange={onSourceChange}
-            onFocus={() => (lastPaneRef.current = 'source')}
+            onFocus={() => views.activate('source')}
+            onSelectionChange={views.onSourceSelection}
           />
         </div>
       )}
@@ -304,7 +331,8 @@ export function Panes({
         className={`pane pane-visual surface-scroll ${visualClassName ?? ''}`}
         ref={visualScrollRef}
         hidden={mode === 'source'}
-        onFocusCapture={() => (lastPaneRef.current = 'visual')}
+        onPointerDownCapture={() => views.activate('visual')}
+        onFocusCapture={() => views.activate('visual')}
       >
         {children}
       </div>

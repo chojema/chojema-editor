@@ -39,6 +39,8 @@ export const SvgSurface = forwardRef<SurfaceHandle, SurfaceProps>(function SvgSu
 
   useImperativeHandle(ref, () => ({
     getContent: views.getContent,
+    undo: () => { views.sourceHistory('undo') },
+    redo: () => { views.sourceHistory('redo') },
     markSaved: () => views.settle(),
     setMode: views.setMode,
     toggleSource: () => views.setMode(views.mode === 'source' ? 'split' : 'source'),

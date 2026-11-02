@@ -21,6 +21,7 @@ interface Props {
   scrollRef: React.RefObject<HTMLElement | null>
   /** Reposition the viewport-anchored menu after document zoom changes. */
   zoom: number
+  active?: boolean
 }
 
 function Btn({
@@ -56,7 +57,7 @@ function Btn({
  * column insert & delete, header-row toggle, delete table (no merge — GFM
  * tables cannot serialize spans).
  */
-export function TableMenu({ editor, scrollRef, zoom }: Props) {
+export function TableMenu({ editor, scrollRef, zoom, active = true }: Props) {
   const { t } = useI18n()
   const [rect, setRect] = useState<{ top: number; left: number } | null>(null)
 
@@ -66,7 +67,7 @@ export function TableMenu({ editor, scrollRef, zoom }: Props) {
   })
 
   useEffect(() => {
-    if (!editor || !inTable) {
+    if (!active || !editor || !inTable) {
       setRect(null)
       return
     }
@@ -94,9 +95,9 @@ export function TableMenu({ editor, scrollRef, zoom }: Props) {
       scroller?.removeEventListener('scroll', reposition)
       window.removeEventListener('resize', reposition)
     }
-  }, [editor, inTable, scrollRef, zoom])
+  }, [editor, inTable, scrollRef, zoom, active])
 
-  if (!editor || !inTable || !rect) return null
+  if (!active || !editor || !inTable || !rect) return null
   const run = (action: TableAction) =>
     uiOp(editor, { op: 'editTable', target: 'selection', action })
   const ICON = 15

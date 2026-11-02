@@ -705,6 +705,7 @@ body.is-resizing .pane {
 
 .json-row {
   display: flex;
+  min-width: max-content;
   align-items: flex-start;
   gap: 4px;
   padding-right: 8px;
@@ -799,7 +800,10 @@ button.json-val:hover:not(:disabled) {
 }
 
 .json-val {
-  min-width: 0;
+  flex: none;
+  min-width: 1ch;
+  white-space: pre;
+  overflow-wrap: normal;
 }
 
 .json-val-string {

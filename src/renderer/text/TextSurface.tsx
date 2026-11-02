@@ -18,6 +18,8 @@ export const TextSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Text
 
   useImperativeHandle(ref, () => ({
     getContent: text,
+    undo: () => { codeRef.current?.undo() },
+    redo: () => { codeRef.current?.redo() },
     markSaved: () => {},
     // plain text has a single view
     setMode: () => {},

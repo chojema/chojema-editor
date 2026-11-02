@@ -481,8 +481,8 @@ function buildMenu(): void {
     {
       label: mt('편집'),
       submenu: [
-        { role: 'undo', label: mt('실행 취소') },
-        { role: 'redo', label: mt('다시 실행') },
+        { label: mt('실행 취소'), accelerator: 'CmdOrCtrl+Z', click: () => sendMenu('undo') },
+        { label: mt('다시 실행'), accelerator: isMac ? 'CmdOrCtrl+Shift+Z' : 'Ctrl+Y', click: () => sendMenu('redo') },
         { type: 'separator' },
         { role: 'cut', label: mt('잘라내기') },
         { role: 'copy', label: mt('복사') },

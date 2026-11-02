@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { EditorView } from '@codemirror/view'
+import { undo as undoCode, redo as redoCode } from '@codemirror/commands'
 import { docKindForPath, type DocKind, type InitialDoc } from '../shared/ipc'
 import { lineEnding, type TextEncoding } from '../shared/encoding'
 import { htmlToMarkdown } from './html/toMarkdown'
@@ -172,6 +174,15 @@ export function App() {
       window.editorApi.onMenuCommand((command) => {
         const surface = surfaceRef.current
         switch (command) {
+          case 'undo':
+          case 'redo': {
+            const field = document.activeElement
+            const code = field instanceof HTMLElement && field.closest('.cm-editor') ? EditorView.findFromDOM(field) : null
+            if (code) (command === 'undo' ? undoCode : redoCode)(code)
+            else if (field instanceof HTMLTextAreaElement || (field instanceof HTMLInputElement && ['text', 'search', 'url', 'email', 'password', 'tel', 'number'].includes(field.type))) document.execCommand(command)
+            else surface?.[command]()
+            break
+          }
           case 'save':
             void save()
             break

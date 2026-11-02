@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
-import type { Editor } from '@tiptap/core'
+import type { ChainedCommands, Editor } from '@tiptap/core'
+import type { RunEditorAction } from '../sourceCommands'
 import { useEditorState } from '@tiptap/react'
 import { t } from '../i18n/locale'
 import type { StringKey } from '../i18n/locale'
@@ -71,6 +72,10 @@ interface Props {
   onToggleOutline: () => void
   onSave: () => void
   onInsertImage: () => void
+  runCommand: RunEditorAction
+  onReturnFocus: () => void
+  onHistory: (direction: 'undo' | 'redo') => void
+  sourceHistory?: { canUndo: boolean; canRedo: boolean }
   /** HTML: keep-all on the <body> tag; null when the document has no <body> tag */
   docKeepAll?: boolean | null
   onDocKeepAll?: (on: boolean) => void
@@ -128,7 +133,7 @@ function useKeepInWindow(open: boolean, popRef: RefObject<HTMLElement | null>, k
   return shift ? { left: -shift } : undefined
 }
 
-function LinkButton({ editor, disabled, html }: { editor: Editor; disabled: boolean; html: boolean }) {
+function LinkButton({ editor, disabled, html, runCommand, onReturnFocus }: { editor: Editor; disabled: boolean; html: boolean; runCommand: RunEditorAction; onReturnFocus: () => void }) {
   const [open, setOpen] = useState(false)
   const [href, setHref] = useState('')
   const [newWindow, setNewWindow] = useState(false)
@@ -167,11 +172,9 @@ function LinkButton({ editor, disabled, html }: { editor: Editor; disabled: bool
 
   const apply = () => {
     const value = href.trim()
-    const chain = editor.chain().focus().extendMarkRange('link')
     // Markdown has no link target; HTML carries the new-window choice as target/rel
     const targetAttrs = html ? linkTargetAttrs(editor.getAttributes('link'), newWindow) : {}
-    if (value) chain.setLink({ href: value, ...targetAttrs }).run()
-    else chain.unsetLink().run()
+    runCommand(e => value ? e.chain().extendMarkRange('link').setLink({ href: value, ...targetAttrs }).run() : e.chain().extendMarkRange('link').unsetLink().run())
     setOpen(false)
   }
 
@@ -182,6 +185,7 @@ function LinkButton({ editor, disabled, html }: { editor: Editor; disabled: bool
         active={editor.isActive('link')}
         disabled={disabled}
         onClick={() => {
+          if (!runCommand(() => {})) return
           loadLink()
           setOpen((value) => !value)
         }}
@@ -200,7 +204,7 @@ function LinkButton({ editor, disabled, html }: { editor: Editor; disabled: bool
               if (event.key === 'Enter') apply()
               if (event.key === 'Escape') {
                 setOpen(false)
-                editor.commands.focus()
+                onReturnFocus()
               }
             }}
           />
@@ -214,7 +218,7 @@ function LinkButton({ editor, disabled, html }: { editor: Editor; disabled: bool
                   if (event.key === 'Enter') apply()
                   if (event.key === 'Escape') {
                     setOpen(false)
-                    editor.commands.focus()
+                    onReturnFocus()
                   }
                 }}
               />
@@ -229,7 +233,7 @@ function LinkButton({ editor, disabled, html }: { editor: Editor; disabled: bool
               type="button"
               className="tb-text-btn"
               onClick={() => {
-                editor.chain().focus().extendMarkRange('link').unsetLink().run()
+                runCommand(e => e.chain().extendMarkRange('link').unsetLink().run())
                 setOpen(false)
               }}
             >
@@ -248,12 +252,16 @@ function WordBreakButton({
   disabled,
   paragraph,
   cell,
+  runCommand,
+  onReturnFocus,
   doc,
   onDoc,
 }: {
   editor: Editor
   disabled: boolean
   paragraph: boolean | null
+  runCommand: RunEditorAction
+  onReturnFocus: () => void
   cell: boolean | null
   doc: boolean | null
   onDoc: (on: boolean) => void
@@ -271,7 +279,7 @@ function WordBreakButton({
     const escape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false)
-        editor.commands.focus()
+        onReturnFocus()
       }
     }
     document.addEventListener('mousedown', close)
@@ -280,12 +288,12 @@ function WordBreakButton({
       document.removeEventListener('mousedown', close)
       document.removeEventListener('keydown', escape)
     }
-  }, [open, editor])
+  }, [open, editor, onReturnFocus])
 
   const rows: { label: StringKey; checked: boolean | null; toggle: (on: boolean) => void }[] = [
     { label: 'keepWordsDocument', checked: doc, toggle: onDoc },
-    { label: 'keepWordsParagraph', checked: paragraph, toggle: (on) => setParagraphKeepAll(editor, on) },
-    { label: 'keepWordsCell', checked: cell, toggle: (on) => setCellKeepAll(editor, on) },
+    { label: 'keepWordsParagraph', checked: paragraph, toggle: (on) => runCommand(e => setParagraphKeepAll(e, on)) },
+    { label: 'keepWordsCell', checked: cell, toggle: (on) => runCommand(e => setCellKeepAll(e, on)) },
   ]
 
   return (
@@ -390,6 +398,10 @@ export function Toolbar({
   onToggleOutline,
   onSave,
   onInsertImage,
+  runCommand,
+  onReturnFocus,
+  onHistory,
+  sourceHistory,
   docKeepAll = null,
   onDocKeepAll = () => {},
 }: Props) {
@@ -430,14 +442,14 @@ export function Toolbar({
     },
   })
 
-  const off = mode === 'source' || !editor || !state
+  const off = !editor || !state
   const html = kind === 'html'
-  const chain = () => editor!.chain().focus()
+  const execute = (command: (chain: ChainedCommands) => ChainedCommands) => runCommand(e => command(e.chain()).run())
 
   const setBlock = (style: BlockStyle) => {
-    if (style === 'p') chain().setParagraph().run()
-    else if (style === 'pre') chain().toggleCodeBlock().run()
-    else chain().setHeading({ level: Number(style.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6 }).run()
+    if (style === 'p') execute(c => c.setParagraph())
+    else if (style === 'pre') execute(c => c.toggleCodeBlock())
+    else execute(c => c.setHeading({ level: Number(style.slice(1)) as 1 | 2 | 3 | 4 | 5 | 6 }))
   }
 
   const blockOptions = (Object.keys(BLOCK_LABELS) as BlockStyle[]).map((value) => ({
@@ -450,10 +462,10 @@ export function Toolbar({
       <Btn label={t('save')} onClick={onSave}>
         <IconSave size={18} />
       </Btn>
-      <Btn label={t('undo')} disabled={off || !state.canUndo} onClick={() => chain().undo().run()}>
+      <Btn label={t('undo')} disabled={off || !(sourceHistory?.canUndo ?? state.canUndo)} onClick={() => onHistory('undo')}>
         <IconUndo size={18} />
       </Btn>
-      <Btn label={t('redo')} disabled={off || !state.canRedo} onClick={() => chain().redo().run()}>
+      <Btn label={t('redo')} disabled={off || !(sourceHistory?.canRedo ?? state.canRedo)} onClick={() => onHistory('redo')}>
         <IconRedo size={18} />
       </Btn>
       <Sep />
@@ -472,7 +484,7 @@ export function Toolbar({
             value={state?.fontFamily ?? ''}
             options={FONT_FAMILIES.map((f) => ({ value: f.value, label: f.label() }))}
             onPick={(value) =>
-              value ? chain().setFontFamily(value).run() : chain().unsetFontFamily().run()
+              value ? execute(c => c.setFontFamily(value)) : execute(c => c.unsetFontFamily())
             }
             ariaLabel={t('fontFamily')}
             disabled={off}
@@ -482,7 +494,7 @@ export function Toolbar({
             value={state?.fontSize ?? ''}
             options={FONT_SIZES.map((value) => ({ value, label: value || t('sizeDefault') }))}
             onPick={(value) =>
-              value ? chain().setFontSize(value).run() : chain().unsetFontSize().run()
+              value ? execute(c => c.setFontSize(value)) : execute(c => c.unsetFontSize())
             }
             ariaLabel={t('fontSize')}
             disabled={off}
@@ -490,21 +502,21 @@ export function Toolbar({
         </>
       )}
       <Sep />
-      <Btn label={t('bold')} active={state?.bold} disabled={off} onClick={() => chain().toggleBold().run()}>
+      <Btn label={t('bold')} active={state?.bold} disabled={off} onClick={() => execute(c => c.toggleBold())}>
         <span className="tb-glyph tb-b">B</span>
       </Btn>
-      <Btn label={t('italic')} active={state?.italic} disabled={off} onClick={() => chain().toggleItalic().run()}>
+      <Btn label={t('italic')} active={state?.italic} disabled={off} onClick={() => execute(c => c.toggleItalic())}>
         <span className="tb-glyph tb-i">I</span>
       </Btn>
       {html && (
-        <Btn label={t('underline')} active={state?.underline} disabled={off} onClick={() => chain().toggleUnderline().run()}>
+        <Btn label={t('underline')} active={state?.underline} disabled={off} onClick={() => execute(c => c.toggleUnderline())}>
           <span className="tb-glyph tb-u">U</span>
         </Btn>
       )}
-      <Btn label={t('strike')} active={state?.strike} disabled={off} onClick={() => chain().toggleStrike().run()}>
+      <Btn label={t('strike')} active={state?.strike} disabled={off} onClick={() => execute(c => c.toggleStrike())}>
         <span className="tb-glyph tb-s">S</span>
       </Btn>
-      <Btn label={t('inlineCode')} active={state?.code} disabled={off} onClick={() => chain().toggleCode().run()}>
+      <Btn label={t('inlineCode')} active={state?.code} disabled={off} onClick={() => execute(c => c.toggleCode())}>
         <IconInlineCode size={18} />
       </Btn>
       {html ? (
@@ -514,33 +526,33 @@ export function Toolbar({
             icon={<IconFontColorA size={18} />}
             value={state?.color ?? ''}
             disabled={off}
-            onPick={(color) => chain().setColor(color).run()}
+            onPick={(color) => execute(c => c.setColor(color))}
           />
           <ColorButton
             label={t('bgColor')}
             icon={<IconHighlight size={18} />}
             value={state?.background ?? ''}
             disabled={off}
-            onPick={(color) => chain().setBackgroundColor(color).run()}
+            onPick={(color) => execute(c => c.setBackgroundColor(color))}
           />
-          <Btn label={t('subscript')} active={state?.sub} disabled={off} onClick={() => chain().toggleSubscript().run()}>
+          <Btn label={t('subscript')} active={state?.sub} disabled={off} onClick={() => execute(c => c.toggleSubscript())}>
             <IconSubscript size={18} />
           </Btn>
-          <Btn label={t('superscript')} active={state?.sup} disabled={off} onClick={() => chain().toggleSuperscript().run()}>
+          <Btn label={t('superscript')} active={state?.sup} disabled={off} onClick={() => execute(c => c.toggleSuperscript())}>
             <IconSuperscript size={18} />
           </Btn>
         </>
       ) : (
-        <Btn label={t('highlight')} active={state?.highlight} disabled={off} onClick={() => chain().toggleMark('highlight').run()}>
+        <Btn label={t('highlight')} active={state?.highlight} disabled={off} onClick={() => execute(c => c.toggleMark('highlight'))}>
           <IconHighlight size={18} />
         </Btn>
       )}
-      {editor && <LinkButton editor={editor} disabled={off} html={html} />}
+      {editor && <LinkButton editor={editor} disabled={off} html={html} runCommand={runCommand} onReturnFocus={onReturnFocus} />}
       {html && (
         <Btn
           label={t('clearFormat')}
           disabled={off}
-          onClick={() => chain().unsetAllMarks().unsetTextAlign().run()}
+          onClick={() => execute(c => c.unsetAllMarks().unsetTextAlign())}
         >
           <IconClearFormat size={18} />
         </Btn>
@@ -548,21 +560,23 @@ export function Toolbar({
       <Sep />
       {html && (
         <>
-          <Btn label={t('alignLeft')} active={state?.align === 'left'} disabled={off} onClick={() => chain().setTextAlign('left').run()}>
+          <Btn label={t('alignLeft')} active={state?.align === 'left'} disabled={off} onClick={() => execute(c => c.setTextAlign('left'))}>
             <IconAlignLeft size={18} />
           </Btn>
-          <Btn label={t('alignCenter')} active={state?.align === 'center'} disabled={off} onClick={() => chain().setTextAlign('center').run()}>
+          <Btn label={t('alignCenter')} active={state?.align === 'center'} disabled={off} onClick={() => execute(c => c.setTextAlign('center'))}>
             <IconAlignCenter size={18} />
           </Btn>
-          <Btn label={t('alignRight')} active={state?.align === 'right'} disabled={off} onClick={() => chain().setTextAlign('right').run()}>
+          <Btn label={t('alignRight')} active={state?.align === 'right'} disabled={off} onClick={() => execute(c => c.setTextAlign('right'))}>
             <IconAlignRight size={18} />
           </Btn>
-          <Btn label={t('alignJustify')} active={state?.align === 'justify'} disabled={off} onClick={() => chain().setTextAlign('justify').run()}>
+          <Btn label={t('alignJustify')} active={state?.align === 'justify'} disabled={off} onClick={() => execute(c => c.setTextAlign('justify'))}>
             <IconAlignJustify size={18} />
           </Btn>
           {editor && (
             <WordBreakButton
               editor={editor}
+              runCommand={runCommand}
+              onReturnFocus={onReturnFocus}
               disabled={off}
               paragraph={state?.paragraphKeepAll ?? null}
               cell={state?.cellKeepAll ?? null}
@@ -573,30 +587,30 @@ export function Toolbar({
           <Sep />
         </>
       )}
-      <Btn label={t('bulletList')} active={state?.bullet} disabled={off} onClick={() => chain().toggleBulletList().run()}>
+      <Btn label={t('bulletList')} active={state?.bullet} disabled={off} onClick={() => execute(c => c.toggleBulletList())}>
         <IconBullets size={18} />
       </Btn>
-      <Btn label={t('orderedList')} active={state?.ordered} disabled={off} onClick={() => chain().toggleOrderedList().run()}>
+      <Btn label={t('orderedList')} active={state?.ordered} disabled={off} onClick={() => execute(c => c.toggleOrderedList())}>
         <IconNumbered size={18} />
       </Btn>
-      <Btn label={t('taskList')} active={state?.task} disabled={off} onClick={() => chain().toggleTaskList().run()}>
+      <Btn label={t('taskList')} active={state?.task} disabled={off} onClick={() => execute(c => c.toggleTaskList())}>
         <IconTaskList size={18} />
       </Btn>
-      <Btn label={t('styleQuote')} active={state?.quote} disabled={off} onClick={() => chain().toggleBlockquote().run()}>
+      <Btn label={t('styleQuote')} active={state?.quote} disabled={off} onClick={() => execute(c => c.toggleBlockquote())}>
         <IconQuoteMark size={18} />
       </Btn>
       <Sep />
       <Btn
         label={t('insertTable')}
         disabled={off}
-        onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        onClick={() => execute(c => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true }))}
       >
         <IconTable size={18} />
       </Btn>
       <Btn label={t('insertImage')} disabled={off} onClick={onInsertImage}>
         <IconPicture size={18} />
       </Btn>
-      <Btn label={t('insertHr')} disabled={off} onClick={() => chain().setHorizontalRule().run()}>
+      <Btn label={t('insertHr')} disabled={off} onClick={() => execute(c => c.setHorizontalRule())}>
         <IconHr size={18} />
       </Btn>
       <span className="tb-spacer" />

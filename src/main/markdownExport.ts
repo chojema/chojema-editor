@@ -1,10 +1,12 @@
-import { dirname, isAbsolute, relative, sep } from 'node:path'
+import { posix, win32 } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import type { MarkdownExportRequest } from '../shared/ipc'
 
 /** Rebase links only after the destination is chosen. Never rewrite prose or code. */
 export function markdownForDestination(request: MarkdownExportRequest, sourcePath: string | null, destination: string): string {
-  let base = sourcePath ? pathToFileURL(sourcePath) : null
+  const windowsPath = (path: string) => /^[a-z]:[\\/]|^\\\\/i.test(path)
+  const paths = windowsPath(destination) ? win32 : posix
+  let base = sourcePath ? pathToFileURL(sourcePath, { windows: windowsPath(sourcePath) }) : null
   if (request.baseHref) {
     try { base = base ? new URL(request.baseHref, base) : new URL(request.baseHref) } catch { /* unresolved relative base */ }
   }
@@ -16,8 +18,8 @@ export function markdownForDestination(request: MarkdownExportRequest, sourcePat
         const authored = url.replace(/^md-asset:/i, 'file:')
         const resolved = base ? new URL(authored, base) : new URL(authored)
         if (resolved.protocol === 'file:') {
-          const rel = relative(dirname(destination), fileURLToPath(resolved))
-          target = isAbsolute(rel) ? resolved.href : rel.split(sep).map(encodeURIComponent).join('/') + resolved.search + resolved.hash
+          const rel = paths.relative(paths.dirname(destination), fileURLToPath(resolved, { windows: windowsPath(destination) }))
+          target = paths.isAbsolute(rel) ? resolved.href : rel.split(paths.sep).map(encodeURIComponent).join('/') + resolved.search + resolved.hash
         } else target = resolved.href
       } catch { /* untitled documents retain unresolved relative references */ }
     }

@@ -24,6 +24,7 @@ import { scopeCss } from './scopeCss'
 import { RAW_HTML_EDIT_EVENT, type RawHtmlEditDetail } from './rawHtml'
 import { BARE_ATTR } from './preserve'
 import { KEEP_ALL, setBodyKeepAll, styleWordBreak } from './wordBreak'
+import { useSourceCommands } from '../sourceCommands'
 
 const CANVAS = 'html-canvas'
 const BODY_TAG_END = /<body\b[^>]*>$/i
@@ -128,6 +129,12 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
     autofocus: true,
     editorProps: { attributes: canvasAttributes },
     onUpdate: ({ editor: updated }) => {
+      const prefix = updated.state.doc.attrs.htmlPrefix
+      if (typeof prefix === 'string' && prefix !== envelopeRef.current.prefix) {
+        const next = { ...envelopeRef.current, prefix, bodyAttrs: parseHtmlDocument(`${prefix}</body>`).bodyAttrs }
+        envelopeRef.current = next
+        setEnvelope(next)
+      }
       onDirtyRef.current()
       onStatsRef.current(statsOf(updated.getText()))
       editorUpdateRef.current()
@@ -144,7 +151,8 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
       const next = parseHtmlDocument(raw)
       setEnvelope(next)
       envelopeRef.current = next
-      editor.chain().setMeta('addToHistory', undoable).setContent(next.body, { emitUpdate: false }).run()
+      editor.chain().setMeta('addToHistory', undoable).setContent(next.body, { emitUpdate: false })
+        .command(({ tr }) => { tr.setDocAttribute('htmlPrefix', next.prefix); return true }).run()
       originalRef.current = { raw, doc: editor.state.doc, prefix: next.prefix }
       onStatsRef.current(statsOf(editor.getText()))
     },
@@ -160,7 +168,8 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
     return serializeHtmlDocument(envelopeRef.current, cleanSerializedHtml(editor.getHTML(), BARE_ATTR))
   }, [editor, startText])
 
-  const views = useViewModes({ prefKey: 'html', serialize, load, onDirty, onStats })
+  const views = useViewModes({ prefKey: 'html', serialize, load, onDirty, onStats, initialSource: startText })
+  const commands = useSourceCommands(editor, 'html', views)
   editorUpdateRef.current = views.onEditorUpdate
 
   useEffect(() => {
@@ -190,26 +199,24 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
     : null
   const setDocKeepAll = useCallback(
     (on: boolean) => {
+      views.settle()
       const current = envelopeRef.current
       const changed = setBodyKeepAll(current.prefix, on)
       if (!changed) return
-      const { style: _old, ...rest } = current.bodyAttrs
-      const next = { ...current, prefix: changed.prefix, bodyAttrs: changed.style ? { ...rest, style: changed.style } : rest }
-      setEnvelope(next)
-      envelopeRef.current = next
-      onDirtyRef.current()
-      editorUpdateRef.current()
-      editor?.commands.focus()
+      if (!editor) return
+      editor.view.dispatch(editor.state.tr.setDocAttribute('htmlPrefix', changed.prefix))
+      if (views.lastPaneRef.current === 'source') { views.flushEditor(true); views.sourceRef.current?.focus() }
+      else editor?.commands.focus()
     },
-    [editor],
+    [editor, views.settle, views.flushEditor, views.lastPaneRef, views.sourceRef],
   )
 
   const insertImage = useCallback(() => {
     void (async () => {
       const src = await window.editorApi.pickImage()
-      if (src && editor) editor.chain().focus().setImage({ src }).run()
+      if (src) commands.run(e => e.chain().setImage({ src }).run())
     })()
-  }, [editor])
+  }, [commands.run])
 
   useEffect(() => {
     const open = (event: Event) => setRawEdit((event as CustomEvent<RawHtmlEditDetail>).detail)
@@ -238,6 +245,8 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
     ref,
     () => ({
       getContent: views.getContent,
+      undo: () => commands.history('undo'),
+      redo: () => commands.history('redo'),
       markSaved(content) {
         if (views.mode === 'source' || !editor) return
         views.settle()
@@ -278,6 +287,10 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
         onToggleOutline={() => setOutlineOpen(!outlineOpen)}
         onSave={onSave}
         onInsertImage={insertImage}
+        runCommand={commands.run}
+        onReturnFocus={commands.focus}
+        onHistory={commands.history}
+        sourceHistory={views.activePane === 'source' ? views.sourceSelection : undefined}
         docKeepAll={docKeepAll}
         onDocKeepAll={setDocKeepAll}
       />
@@ -301,7 +314,7 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
           </div>
         </Panes>
       </div>
-      {views.mode !== 'source' && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} />}
+      {views.mode !== 'source' && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} active={views.activePane === 'visual'} />}
       {rawEdit && (
         <RawHtmlDialog html={rawEdit.html} onApply={applyRawEdit} onCancel={() => setRawEdit(null)} />
       )}

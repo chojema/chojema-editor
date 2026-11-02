@@ -4,6 +4,7 @@
  */
 export const strings = {
   ko: {
+    sourceFormatUnavailable: "서식을 적용할 본문 텍스트를 선택하세요. 태그, 속성, 문서 정보는 소스에서 직접 편집할 수 있습니다.",
     autoCopy: "선택 시 복사",
     autoCopyTip: "켜면 글자를 선택하는 즉시 클립보드에 복사합니다 (편집 메뉴에서도 켜고 끌 수 있음)",
     copiedFlash: "복사됨",
@@ -213,6 +214,7 @@ export const strings = {
     insertTableHtml: "표 삽입",
   },
   en: {
+    sourceFormatUnavailable: "Select body text to format. Edit tags, attributes, and document metadata directly in the source.",
     autoCopy: "Copy on select",
     autoCopyTip: "When on, selected text is copied to the clipboard right away (also in the Edit menu)",
     copiedFlash: "Copied",

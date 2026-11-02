@@ -1,4 +1,4 @@
-import type { AnyExtension } from '@tiptap/core'
+import { Extension, type AnyExtension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { TableKit } from '@tiptap/extension-table'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
@@ -48,6 +48,12 @@ const HtmlImage = LocalImage.extend({
 /** the extension set behind the HTML visual editor */
 export function buildHtmlExtensions(): AnyExtension[] {
   return [
+    // Envelope changes must travel with ProseMirror history too. This is
+    // document metadata, never an attribute rendered into the body markup.
+    Extension.create({
+      name: 'htmlEnvelopeHistory',
+      addGlobalAttributes: () => [{ types: ['doc'], attributes: { htmlPrefix: { default: null, rendered: false } } }],
+    }),
     StarterKit.configure({
       link: { openOnClick: false, autolink: true, HTMLAttributes: { target: null, rel: null } },
       // the document's own spacing rules decide, not an editor-inserted trailing paragraph

@@ -67,6 +67,8 @@ export interface MarkdownExportRequest {
 
 /** menu commands the main process forwards to the focused window */
 export type MenuCommand =
+  | 'undo'
+  | 'redo'
   | 'save'
   | 'saveAs'
   | 'toggleSource'

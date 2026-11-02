@@ -68,8 +68,13 @@ export function FindBar({ editor, withReplace, onClose }: Props) {
       const tr = editor.state.tr.setMeta(searchPluginKey, { ranges: next, activeIndex: index })
       tr.setMeta('addToHistory', false)
       const hit = next[index]
-      if (scroll && hit) tr.setSelection(TextSelection.create(tr.doc, hit.from, hit.to)).scrollIntoView()
+      if (scroll && hit) tr.setSelection(TextSelection.create(tr.doc, hit.from, hit.to))
       editor.view.dispatch(tr)
+      // ProseMirror skips selection scrolling while the find controls have focus.
+      // Reveal the painted hit directly so typing and navigation keep their focus.
+      if (scroll && hit) {
+        editor.view.dom.querySelector('.search-hit-active')?.scrollIntoView({ block: 'center', inline: 'nearest' })
+      }
     },
     [editor],
   )

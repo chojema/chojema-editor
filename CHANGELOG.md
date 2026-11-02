@@ -5,6 +5,11 @@
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-11-02
+
+### Fixed
+- Markdown·HTML 실시간 미리보기와 나란히 보기에서 찾기의 이전·다음 버튼 또는 Enter·Shift+Enter를 눌러도 해당 위치로 화면이 이동하지 않던 문제. 검색창의 입력 포커스를 유지하면서 선택된 결과를 화면에 표시.
+
 ## [0.7.2] - 2026-11-02
 
 ### Changed
@@ -97,7 +102,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.3...HEAD
+[0.7.3]: https://github.com/chojema/chojema-editor/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/chojema/chojema-editor/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/chojema/chojema-editor/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/chojema/chojema-editor/compare/v0.6.0...v0.7.0

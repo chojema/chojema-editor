@@ -251,7 +251,7 @@ export const JsonSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Json
           </>
         )}
         <span className="tb-spacer" />
-        <ViewModeSwitch mode={views.mode} onMode={setMode} />
+        <ViewModeSwitch mode={views.mode} onMode={setMode} kind="json" />
       </div>
       {find && !inSourceOnly && (
         <div className="json-find" role="search">

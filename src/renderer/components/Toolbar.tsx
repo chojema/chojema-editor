@@ -352,7 +352,16 @@ function ColorButton({
 }
 
 /** the formatting row above the Markdown and HTML visual editors */
-export function ViewModeSwitch({ mode, onMode }: { mode: ViewMode; onMode: (mode: ViewMode) => void }) {
+export function ViewModeSwitch({ mode, onMode, kind = 'document' }: {
+  mode: ViewMode
+  onMode: (mode: ViewMode) => void
+  kind?: 'document' | 'svg' | 'json'
+}) {
+  const tips: Partial<Record<ViewMode, StringKey>> = kind === 'svg'
+    ? { visual: 'svgVisualTip', split: 'svgSplitTip' }
+    : kind === 'json'
+      ? { visual: 'jsonVisualTip', split: 'jsonSplitTip' }
+      : {}
   return (
     <div className="tb-modes" role="group" aria-label={t('viewMode')}>
       {MODES.map((m) => (
@@ -360,7 +369,7 @@ export function ViewModeSwitch({ mode, onMode }: { mode: ViewMode; onMode: (mode
           key={m.mode}
           type="button"
           className={`tb-mode${mode === m.mode ? ' is-active' : ''}`}
-          title={t(m.tip)}
+          title={t(tips[m.mode] ?? m.tip)}
           aria-pressed={mode === m.mode}
           onClick={() => onMode(m.mode)}
         >

@@ -60,7 +60,7 @@ export const SvgSurface = forwardRef<SurfaceHandle, SurfaceProps>(function SvgSu
         <span className="svg-label">{t('svgPreview')}</span>
         <button type="button" className="svg-export-button" onClick={() => setExportSource(views.getContent())}>{t('svgExport')}</button>
         <span className="tb-spacer" />
-        <ViewModeSwitch mode={views.mode} onMode={views.setMode} />
+        <ViewModeSwitch mode={views.mode} onMode={views.setMode} kind="svg" />
       </div>
       {exportSource !== null && <SvgExportDialog source={exportSource} onClose={() => setExportSource(null)} />}
       <Panes views={views} prefKey="svg" language="svg" wrap={wrap} zoom={zoom}

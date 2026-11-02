@@ -5,6 +5,11 @@
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-11-02
+
+### Changed
+- 보기 방식 이름을 “실시간 미리보기 · 나란히 · 소스”로 통일하고 영어 UI·기본 메뉴·사용 안내에 반영. Markdown·HTML의 직접 편집과 SVG 이미지 미리보기, JSON 트리 편집을 구분하도록 툴팁 개선.
+
 ## [0.7.1] - 2026-11-01
 
 ### Fixed
@@ -92,7 +97,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.2...HEAD
+[0.7.2]: https://github.com/chojema/chojema-editor/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/chojema/chojema-editor/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/chojema/chojema-editor/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/chojema/chojema-editor/compare/v0.5.0...v0.6.0

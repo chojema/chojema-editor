@@ -512,10 +512,10 @@ function buildMenu(): void {
     {
       label: mt('보기'),
       submenu: [
-        { label: mt('편집 화면'), accelerator: 'CmdOrCtrl+1', click: () => sendMenu('viewVisual') },
-        { label: mt('나란히 보기'), accelerator: 'CmdOrCtrl+2', click: () => sendMenu('viewSplit') },
-        { label: mt('소스 보기'), accelerator: 'CmdOrCtrl+3', click: () => sendMenu('viewSource') },
-        { label: mt('편집 화면 ↔ 소스 전환'), accelerator: 'CmdOrCtrl+/', click: () => sendMenu('toggleSource') },
+        { label: mt('실시간 미리보기'), accelerator: 'CmdOrCtrl+1', click: () => sendMenu('viewVisual') },
+        { label: mt('나란히'), accelerator: 'CmdOrCtrl+2', click: () => sendMenu('viewSplit') },
+        { label: mt('소스'), accelerator: 'CmdOrCtrl+3', click: () => sendMenu('viewSource') },
+        { label: mt('실시간 미리보기 ↔ 소스 전환'), accelerator: 'CmdOrCtrl+/', click: () => sendMenu('toggleSource') },
         { type: 'separator' },
         { label: mt('개요'), accelerator: 'CmdOrCtrl+Shift+O', click: () => sendMenu('toggleOutline') },
         { label: mt('자동 줄 바꿈 전환'), accelerator: 'Alt+Z', click: () => sendMenu('toggleWrap') },

@@ -99,8 +99,25 @@ type Serializer = {
 const hasMark = (node: JsonNode, name: string): boolean =>
   (node.marks ?? []).some((m) => (typeof m === 'string' ? m : m.type) === name)
 
+const doubleTildeParsers = new WeakSet<object>()
+
 export const SelectiveEscapeMarkdown = Markdown.extend({
   onBeforeCreate(props) {
+    // Managers share a marked instance. Install once, before the parent parses
+    // initial content, so ranges such as `2026~2027, 2028~2029` stay literal.
+    const parser = this.storage.manager.instance
+    if (!doubleTildeParsers.has(parser)) {
+      parser.use({
+        tokenizer: {
+          del(src) {
+            // `false` delegates double tildes to marked's existing delimiter
+            // rules; undefined rejects single tildes without falling back.
+            return src.startsWith('~~') ? false : undefined
+          },
+        },
+      })
+      doubleTildeParsers.add(parser)
+    }
     this.parent?.(props)
     const manager = this.editor.markdown as unknown as Serializer | undefined
     if (!manager) return

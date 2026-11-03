@@ -5,6 +5,11 @@
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-11-03
+
+### Fixed
+- Markdown에서 단일 물결표(`~`)를 일반 문자로 처리하여 여러 연도·숫자 범위에 의도치 않은 취소선이 생기던 문제. 취소선은 `~~문구~~`로 지정.
+
 ## [0.7.4] - 2026-11-03
 
 ### Fixed
@@ -112,7 +117,9 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.3...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.5...HEAD
+[0.7.5]: https://github.com/chojema/chojema-editor/compare/v0.7.4...v0.7.5
+[0.7.4]: https://github.com/chojema/chojema-editor/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/chojema/chojema-editor/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/chojema/chojema-editor/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/chojema/chojema-editor/compare/v0.7.0...v0.7.1

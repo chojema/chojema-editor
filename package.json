@@ -1,7 +1,7 @@
 {
   "name": "chojema-editor",
   "productName": "Chojema Editor",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "Text editor with WYSIWYG Markdown and HTML editing",
   "author": "Chulwoo Park",
   "homepage": "https://github.com/chojema/chojema-editor#readme",
@@ -189,6 +189,6 @@
       "uninstallerIcon": "build/icon.ico",
       "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
     },
-    "copyright": "Copyright © 2026 Chulwoo Park"
+    "copyright": "Copyright \u00a9 2026 Chulwoo Park"
   }
 }

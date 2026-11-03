@@ -24,6 +24,7 @@ import {
 } from './preserve'
 import { RawHtmlBlock, RawHtmlInline } from './rawHtml'
 import { WordBreak } from './wordBreak'
+import { HtmlTable, HtmlTableRow } from './table'
 
 /** HTML has sized images; markdown does not, so the shared image node gains the two attributes here */
 const HtmlImage = LocalImage.extend({
@@ -71,7 +72,9 @@ export function buildHtmlExtensions(): AnyExtension[] {
     TaskList,
     TaskItem.configure({ nested: true }),
     // the resizable table view draws its own <table> and drops the document's class/style on it
-    TableKit.configure({ table: { resizable: false } }),
+    TableKit.configure({ table: false, tableRow: false }),
+    HtmlTable,
+    HtmlTableRow,
     HtmlImage,
     HtmlBlockContainer,
     HtmlTextContainer,

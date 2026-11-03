@@ -3,6 +3,8 @@ import type { Node as PmNode } from '@tiptap/pm/model'
 import { EditorContent, useEditor } from '@tiptap/react'
 import { dirOf, resolveImageSrc, setImageBaseDir } from '../editor/localImage'
 import { TableMenu } from '../components/TableMenu'
+import { useTableTools } from '../tables/useTableTools'
+import { spliceHtmlTableChanges } from './tableSplice'
 import { Toolbar } from '../components/Toolbar'
 import { FindBar } from '../components/FindBar'
 import { OutlinePane } from '../components/OutlinePane'
@@ -165,11 +167,16 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
     if (original && editor.state.doc.eq(original.doc) && envelopeRef.current.prefix === original.prefix) {
       return original.raw
     }
+    if (original) {
+      const body = spliceHtmlTableChanges(editor, parseHtmlDocument(original.raw).body, original.doc, editor.state.doc)
+      if (body !== null) return serializeHtmlDocument(envelopeRef.current, body, true)
+    }
     return serializeHtmlDocument(envelopeRef.current, cleanSerializedHtml(editor.getHTML(), BARE_ATTR))
   }, [editor, startText])
 
   const views = useViewModes({ prefKey: 'html', serialize, load, onDirty, onStats, initialSource: startText })
   const commands = useSourceCommands(editor, 'html', views)
+  const tableTools = useTableTools(editor, 'html', views)
   editorUpdateRef.current = views.onEditorUpdate
 
   useEffect(() => {
@@ -287,6 +294,7 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
         onToggleOutline={() => setOutlineOpen(!outlineOpen)}
         onSave={onSave}
         onInsertImage={insertImage}
+        tableTools={tableTools}
         runCommand={commands.run}
         onReturnFocus={commands.focus}
         onHistory={commands.history}
@@ -314,7 +322,7 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
           </div>
         </Panes>
       </div>
-      {views.mode !== 'source' && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} active={views.activePane === 'visual'} />}
+      <TableMenu tools={tableTools} scrollRef={scrollRef} zoom={zoom} />
       {rawEdit && (
         <RawHtmlDialog html={rawEdit.html} onApply={applyRawEdit} onCancel={() => setRawEdit(null)} />
       )}

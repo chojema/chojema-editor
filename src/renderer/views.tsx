@@ -176,6 +176,19 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initi
     return changed
   }, [settle, flushSource])
 
+  /** A structural source command replaces only its affected range, as one source undo step. */
+  const applySourceEdit = useCallback((text: string) => {
+    if (timer.current !== null) window.clearTimeout(timer.current)
+    timer.current = null
+    pending.current = null
+    pendingSourceRef.current = null
+    sourceRef.current?.setValue(text, true)
+    syncedRef.current = text
+    fns.current.load(text, false)
+    fns.current.onDirty()
+    fns.current.onStats(statsOf(text))
+  }, [])
+
   return {
     mode,
     setMode,
@@ -193,6 +206,7 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initi
     onSourceSelection: setSourceSelection,
     flushEditor,
     sourceHistory,
+    applySourceEdit,
   }
 }
 

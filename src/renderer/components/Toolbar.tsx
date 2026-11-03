@@ -6,6 +6,8 @@ import { useEditorState } from '@tiptap/react'
 import { t } from '../i18n/locale'
 import type { StringKey } from '../i18n/locale'
 import { Dropdown } from './dropdown'
+import { TableButton } from './TableControls'
+import type { TableTools } from '../tables/useTableTools'
 import { OPEN_LINK_EVENT } from '../editor/blockKeymap'
 import { linkTargetAttrs, opensInNewWindow } from '../html/linkTarget'
 import { cellKeepAll, paragraphKeepAll, setCellKeepAll, setParagraphKeepAll } from '../html/wordBreak'
@@ -31,7 +33,6 @@ import {
   IconSourceCode,
   IconSubscript,
   IconSuperscript,
-  IconTable,
   IconTaskList,
   IconUndo,
   IconWordWrap,
@@ -73,6 +74,7 @@ interface Props {
   onSave: () => void
   onInsertImage: () => void
   runCommand: RunEditorAction
+  tableTools: TableTools
   onReturnFocus: () => void
   onHistory: (direction: 'undo' | 'redo') => void
   sourceHistory?: { canUndo: boolean; canRedo: boolean }
@@ -399,6 +401,7 @@ export function Toolbar({
   onSave,
   onInsertImage,
   runCommand,
+  tableTools,
   onReturnFocus,
   onHistory,
   sourceHistory,
@@ -600,13 +603,7 @@ export function Toolbar({
         <IconQuoteMark size={18} />
       </Btn>
       <Sep />
-      <Btn
-        label={t('insertTable')}
-        disabled={off}
-        onClick={() => execute(c => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true }))}
-      >
-        <IconTable size={18} />
-      </Btn>
+      <TableButton tools={tableTools} />
       <Btn label={t('insertImage')} disabled={off} onClick={onInsertImage}>
         <IconPicture size={18} />
       </Btn>

@@ -72,7 +72,12 @@ function tagAttributes(tag: string): Record<string, string> {
   return out
 }
 
-export function serializeHtmlDocument(envelope: HtmlEnvelope, bodyHtml: string): string {
+export function serializeHtmlDocument(envelope: HtmlEnvelope, bodyHtml: string, preserveSource = false): string {
+  if (preserveSource) {
+    let text = envelope.prefix + bodyHtml + envelope.suffix
+    if (envelope.eol === '\r\n') text = text.replace(/\n/g, '\r\n')
+    return envelope.bom ? `\uFEFF${text}` : text
+  }
   const body = formatHtml(bodyHtml)
   let text: string
   if (envelope.prefix || envelope.suffix) {

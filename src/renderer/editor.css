@@ -600,6 +600,26 @@
   margin: 0 3px;
 }
 
+.table-menu button:disabled, .table-popover button:disabled { opacity: .4; cursor: default; }
+.table-quick-label { border: 0; background: transparent; color: var(--text); font: inherit; padding: 4px 6px; cursor: pointer; }
+.table-selection-size { color: var(--text-muted); font-size: 11px; padding-right: 4px; white-space: nowrap; }
+.table-popover { z-index: 100; box-sizing: border-box; width: min(300px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; padding: 12px; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--surface); color: var(--text); box-shadow: 0 6px 24px var(--md-shadow-color); font-size: 13px; }
+.table-action-panel, .table-create-panel, .table-create-panel form { display: grid; gap: 9px; }
+.table-action-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; }
+.table-action { min-height: 32px; padding: 6px 7px; border: 1px solid var(--border); border-radius: 5px; background: var(--surface); color: var(--text); font: inherit; text-align: start; cursor: pointer; }
+.table-action:hover:not(:disabled), .table-quick-label:hover { background: var(--hover); }
+.table-action.danger { color: var(--danger); }
+.table-action.primary { background: var(--accent); color: white; text-align: center; }
+.table-field { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.table-field input { box-sizing: border-box; width: 76px; min-width: 0; padding: 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); font: inherit; }
+.table-check { display: flex; align-items: center; gap: 6px; }
+.table-size-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.table-size-grid button { aspect-ratio: 1; min-width: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 3px; background: var(--surface); cursor: pointer; }
+.table-size-grid button.chosen { background: var(--active-bg); border-color: var(--accent); }
+.table-popover button:focus-visible, .table-popover input:focus-visible, .table-menu button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.preserved-html-table { margin: 12px 0; overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+.preserved-table-label { color: var(--text-muted); font-size: 12px; margin-bottom: 8px; }
+
 /* ---- block gutter (+ and grip) & block menu ---- */
 
 .md-block-gutter {

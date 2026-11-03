@@ -89,9 +89,15 @@ export function Dropdown<K extends string>({
     // optional chaining on the call: jsdom elements have no scrollIntoView
     popRef.current?.querySelectorAll('.gs-dd-item')[active]?.scrollIntoView?.({ block: 'nearest' })
   }, [open, active])
+  // Callers rebuild the options array on every render. Keying on its content keeps
+  // this effect from queueing an update after each unrelated render (for example
+  // every source caret move in split view), which React eventually reports as a loop.
+  const optionsKey = options.map((option) => `${option.value ?? ''}\u0000${option.disabled ? 1 : 0}`).join('\u0001')
+  const optionsRef = useRef(options)
+  optionsRef.current = options
   useEffect(() => {
-    setActive((current) => reconcileActiveIndex(options, current, value))
-  }, [options, value])
+    setActive((current) => reconcileActiveIndex(optionsRef.current, current, value))
+  }, [optionsKey, value])
   // No fallback to options[0]: an off-list value (e.g. a document-only font)
   // must read as itself, not masquerade as the first option
   const current = options.find((o) => o.value === value)

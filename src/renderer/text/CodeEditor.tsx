@@ -40,6 +40,7 @@ export interface CodeEditorHandle {
   focus(): void
   hasFocus(): boolean
   openFind(): void
+  selectAtCoords(x: number, y: number): void
   /** put the caret at a 1-based line and column and show it */
   goTo(line: number, column: number): void
   scrollElement(): HTMLElement | null
@@ -255,6 +256,14 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
     redo: () => viewRef.current ? redo(viewRef.current) : false,
     focus: () => viewRef.current?.focus(),
     hasFocus: () => viewRef.current?.hasFocus ?? false,
+    selectAtCoords(x, y) {
+      const view = viewRef.current
+      if (!view) return
+      const pos = view.posAtCoords({ x, y })
+      if (pos == null) return
+      const { from, to } = view.state.selection.main
+      if (pos < from || pos > to) view.dispatch({ selection: { anchor: pos } })
+    },
     scrollElement: () => viewRef.current?.scrollDOM ?? null,
     openFind() {
       const view = viewRef.current

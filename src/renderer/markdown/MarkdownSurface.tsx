@@ -7,6 +7,7 @@ import { dirOf, setImageBaseDir } from '../editor/localImage'
 import { uiOp } from '../editor/ops'
 import { SlashMenu, type SlashMenuHandle } from '../components/SlashMenu'
 import { TableMenu } from '../components/TableMenu'
+import { useTableTools } from '../tables/useTableTools'
 import { Toolbar } from '../components/Toolbar'
 import { FindBar } from '../components/FindBar'
 import { OutlinePane } from '../components/OutlinePane'
@@ -126,6 +127,7 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
 
   const views = useViewModes({ prefKey: 'markdown', serialize, load, onDirty, onStats, initialSource: initialContent })
   const commands = useSourceCommands(editor, 'markdown', views)
+  const tableTools = useTableTools(editor, 'markdown', views)
   runCommandRef.current = commands.run
   editorUpdateRef.current = views.onEditorUpdate
 
@@ -197,6 +199,7 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
         onToggleOutline={() => setOutlineOpen(!outlineOpen)}
         onSave={onSave}
         onInsertImage={insertImage}
+        tableTools={tableTools}
         runCommand={commands.run}
         onReturnFocus={commands.focus}
         onHistory={commands.history}
@@ -234,7 +237,7 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
         </Panes>
       </div>
       <SlashMenu ref={slashMenuRef} state={slashState} onDismiss={() => setSlashState(null)} />
-      {views.mode !== 'source' && <TableMenu editor={editor} scrollRef={scrollRef} zoom={zoom} active={views.activePane === 'visual'} />}
+      <TableMenu tools={tableTools} scrollRef={scrollRef} zoom={zoom} />
     </div>
   )
 })

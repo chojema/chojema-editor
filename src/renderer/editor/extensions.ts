@@ -38,6 +38,8 @@ import { boundOrderedList, boundTable, boundTaskList } from './boundedTokenizers
 import type { SlashController, SlashItem } from './slashCommand'
 import { FootnoteDefinition, FootnoteNav, FootnoteReference } from './footnote'
 import { t } from '../i18n/locale'
+import { MarkdownTableSafety } from './tableSafety'
+import { PreservedHtmlTable } from './preservedTable'
 
 export interface BuildExtensionsOptions {
   slashController: SlashController
@@ -105,6 +107,8 @@ export function buildExtensions(options: BuildExtensionsOptions): AnyExtension[]
         ),
     }).configure({ lowlight, defaultLanguage: null }),
     SelectiveEscapeMarkdown,
+    MarkdownTableSafety,
+    PreservedHtmlTable,
     // column widths are not expressible in GFM tables — no resizable columns;
     // the wrapper div gives wide tables a horizontal scrollbar
     TableKit.configure({ table: false }),

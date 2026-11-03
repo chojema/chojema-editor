@@ -5,6 +5,23 @@
 
 ## [Unreleased]
 
+## [0.7.6] - 2026-11-03
+
+### Added
+- 표 삽입 창에서 행·열 수와 머리글 여부를 지정하는 기능. 크기 격자는 방향키로도 선택.
+- 표 편집 메뉴(오른쪽 클릭, Shift+F10, 도구 모음): 여러 행·열을 한 번에 추가하거나 선택 범위를 삭제하고, 행·열 전체를 선택. HTML 표에서는 셀 병합·분할, 머리글 행 전환, 열 너비 지정도 지원. 각 작업은 한 번의 실행 취소로 되돌릴 수 있음.
+- 소스 보기와 나란히 보기의 소스 창에서도 커서가 있는 표에 같은 표 작업을 적용. 표 밖의 소스는 바꾸지 않음.
+
+### Changed
+- 정보 창에 GitHub 저장소와 Chojema App Park(https://chojema.github.io/AppPark/) 링크를 추가. 링크를 누르면 기본 브라우저에서 열림. macOS와 Windows에서 같은 정보 창을 쓰고, 앱 언어와 테마를 따르며 Esc로 닫힘.
+
+### Fixed
+- Markdown 문서 안의 캡션·병합 셀·속성이 있는 HTML 표가 편집 후 저장할 때 단순 표로 바뀌며 내용이 사라지던 문제. 이런 표는 원본 그대로 보존하고 소스에서 편집.
+- Markdown 표에서 붙여넣기나 명령으로 병합 셀, 중첩 표처럼 GFM으로 저장할 수 없는 구조가 만들어지던 문제. 첫 행을 삭제하면 다음 행이 머리글이 됨.
+- HTML 표의 캡션, thead·tbody·tfoot 구역과 속성, 열 정의(colgroup), 셀 속성이 편집 후 사라지던 문제. 표만 고친 경우 표 밖의 HTML과 주석, 바뀌지 않은 셀은 원본 그대로 저장.
+- 표 위에 뜨는 도구 막대가 바로 위 행을 가려 클릭할 수 없던 문제. 막대를 표 바깥에 표시.
+- 나란히 보기의 소스 창에서 커서를 50번 넘게 움직이면 화면 갱신 오류가 나며 표 메뉴 등이 열리지 않던 문제.
+
 ## [0.7.5] - 2026-11-03
 
 ### Fixed
@@ -117,7 +134,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.5...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.6...HEAD
+[0.7.6]: https://github.com/chojema/chojema-editor/compare/v0.7.5...v0.7.6
 [0.7.5]: https://github.com/chojema/chojema-editor/compare/v0.7.4...v0.7.5
 [0.7.4]: https://github.com/chojema/chojema-editor/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/chojema/chojema-editor/compare/v0.7.2...v0.7.3

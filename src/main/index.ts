@@ -20,6 +20,7 @@ import { resolveLanguage, type LanguagePreference } from '../shared/language'
 import { markdownForDestination } from './markdownExport'
 import { RASTER_FORMATS, validRasterRequest, type RasterExportRequest } from '../shared/raster'
 import { mainText } from './strings'
+import { REPOSITORY_URL, refreshAboutWindow, showAboutWindow } from './about'
 import { decodeText, type TextEncoding } from '../shared/encoding'
 
 const APP_NAME = 'Chojema Editor'
@@ -339,9 +340,18 @@ function aboutLabel(): string {
   return currentLanguage() === 'ko' ? `${APP_NAME} 정보` : `About ${APP_NAME}`
 }
 
+function aboutInfo() {
+  return { name: APP_NAME, version: app.getVersion(), language: currentLanguage() }
+}
+
+function openAbout(): void {
+  showAboutWindow(aboutInfo(), process.platform !== 'darwin' && existsSync(DEV_ICON) ? DEV_ICON : undefined)
+}
+
 function setLanguage(language: LanguagePreference): void {
   savePrefs({ language })
   buildMenu()
+  refreshAboutWindow(aboutInfo())
   for (const id of docs.keys()) {
     const win = BrowserWindow.fromId(id)
     if (!win) continue
@@ -437,7 +447,7 @@ function buildMenu(): void {
   const isMac = process.platform === 'darwin'
   const template: MenuItemConstructorOptions[] = [
     ...(isMac ? [{ label: APP_NAME, submenu: [
-      { role: 'about' as const, label: aboutLabel() },
+      { label: aboutLabel(), click: openAbout },
       { type: 'separator' as const },
       { role: 'services' as const, label: mt('서비스') },
       { type: 'separator' as const },
@@ -557,10 +567,10 @@ function buildMenu(): void {
       role: 'help',
       label: mt('도움말'),
       submenu: [
-        { label: aboutLabel(), click: () => app.showAboutPanel() },
+        { label: aboutLabel(), click: openAbout },
         {
           label: mt('웹사이트'),
-          click: () => void shell.openExternal('https://github.com/chojema/chojema-editor'),
+          click: () => void shell.openExternal(REPOSITORY_URL),
         },
       ],
     },
@@ -794,14 +804,6 @@ if (!singleInstance) {
     app.setName(APP_NAME)
     loadPrefs()
     nativeTheme.themeSource = prefs.theme
-    app.setAboutPanelOptions({
-      applicationName: APP_NAME,
-      applicationVersion: app.getVersion(),
-      version: '',
-      authors: ['Chulwoo Park'],
-      copyright: 'Copyright © 2026 Chulwoo Park · Apache License 2.0',
-      website: 'https://github.com/chojema/chojema-editor',
-    })
     if (process.platform === 'darwin' && !app.isPackaged && existsSync(DEV_ICON)) {
       app.dock?.setIcon(DEV_ICON)
     }

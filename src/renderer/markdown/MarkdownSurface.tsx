@@ -205,9 +205,6 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
         onHistory={commands.history}
         sourceHistory={views.activePane === 'source' ? views.sourceSelection : undefined}
       />
-      {find && editor && views.mode !== 'source' && (
-        <FindBar editor={editor} withReplace={find.replace} onClose={() => setFind(null)} />
-      )}
       <div className="surface-body">
         {showOutline && <OutlinePane editor={editor} />}
         <Panes
@@ -218,6 +215,9 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
           zoom={zoom}
           completion={autoComplete}
           visualScrollRef={scrollRef}
+          overlay={find && editor && views.mode !== 'source' && (
+            <FindBar editor={editor} withReplace={find.replace} onClose={() => setFind(null)} />
+          )}
         >
           <div className="doc-page" style={{ zoom: zoom / 100 }}>
             {fmText && (

@@ -5,6 +5,7 @@ import { useI18n } from '../i18n/locale'
 import type { TableTools } from '../tables/useTableTools'
 import { TablePanel, tablePopoverPosition } from './TableControls'
 import { IconColDelete, IconRowDelete } from './icons'
+import { dockTableBar } from './tableDock'
 
 interface Props {
   tools: TableTools
@@ -35,12 +36,8 @@ export function TableMenu({ tools, scrollRef, zoom }: Props) {
         const viewport = scroller.getBoundingClientRect(), bounds = table.getBoundingClientRect()
         if (bounds.bottom < viewport.top || bounds.top > viewport.bottom) { setAnchor(null); return }
         const width = quickRef.current?.offsetWidth ?? 200, height = quickRef.current?.offsetHeight ?? 36
-        // Dock outside the table so the bar never covers cells the user may click next;
-        // only a table taller than the viewport falls back to pinning at the top edge.
-        const above = bounds.top - height - 5, below = bounds.bottom + 5
-        const top = above >= viewport.top + 6 ? above : below + height <= viewport.bottom - 6 ? below : viewport.top + 6
-        const position = tablePopoverPosition(Math.max(bounds.left, bounds.right - width), top, width, height)
-        position.top = Math.max(viewport.top + 6, Math.min(position.top, viewport.bottom - height - 6))
+        const findBar = scroller.closest('.panes')?.querySelector(':scope > .find-bar')?.getBoundingClientRect() ?? null
+        const position = dockTableBar(viewport, bounds, { width, height }, findBar)
         setAnchor(previous => previous?.top === position.top && previous.left === position.left ? previous : position)
       })
     }
@@ -52,8 +49,18 @@ export function TableMenu({ tools, scrollRef, zoom }: Props) {
     window.addEventListener('resize', reposition)
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(reposition) : null
     if (scroller) observer?.observe(scroller)
+    // the find bar opening, closing or growing a replace row moves the space the bar may use
+    const host = scroller?.closest('.panes')
+    const watchFindBar = () => {
+      const findBar = host?.querySelector(':scope > .find-bar')
+      if (findBar) observer?.observe(findBar)
+      reposition()
+    }
+    const mounts = host && typeof MutationObserver !== 'undefined' ? new MutationObserver(watchFindBar) : null
+    if (host) mounts?.observe(host, { childList: true })
+    watchFindBar()
     return () => {
-      cancelAnimationFrame(frame); observer?.disconnect()
+      cancelAnimationFrame(frame); observer?.disconnect(); mounts?.disconnect()
       editor.off('selectionUpdate', reposition); editor.off('update', reposition)
       scroller?.removeEventListener('scroll', reposition, true); window.removeEventListener('resize', reposition)
     }

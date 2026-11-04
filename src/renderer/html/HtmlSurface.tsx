@@ -337,9 +337,6 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
         runPreviewOpen={runPreviewOpen}
         onToggleRunPreview={toggleRunPreview}
       />
-      {find && editor && views.mode !== 'source' && (
-        <FindBar editor={editor} withReplace={find.replace} onClose={() => setFind(null)} />
-      )}
       <div className="surface-body">
         {showOutline && <OutlinePane editor={editor} />}
         <Panes
@@ -351,6 +348,9 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
           completion={autoComplete}
           visualScrollRef={scrollRef}
           visualClassName="html-scroll"
+          overlay={find && editor && views.mode !== 'source' && (
+            <FindBar editor={editor} withReplace={find.replace} onClose={() => setFind(null)} />
+          )}
         >
           <div className="html-page" style={{ zoom: zoom / 100 }}>
             <EditorContent editor={editor} />

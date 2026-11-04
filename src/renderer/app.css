@@ -258,9 +258,10 @@ button {
 
 /* ---- find bar ---- */
 
+/* sits in .panes, so it stays below the toolbar however many rows the toolbar wraps to */
 .find-bar {
   position: absolute;
-  top: 50px;
+  top: 10px;
   right: 18px;
   z-index: 30;
   display: flex;
@@ -366,6 +367,7 @@ button {
 }
 
 .panes {
+  position: relative;
   display: flex;
   flex: 1;
   min-width: 0;

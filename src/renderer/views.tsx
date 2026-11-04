@@ -268,6 +268,8 @@ interface PanesProps {
   /** shown above the source pane */
   keepSourceMounted?: boolean
   sourceNote?: ReactNode
+  /** floats over the top right of the panes, below the toolbar however many rows it wraps to (the find bar) */
+  overlay?: ReactNode
 }
 
 /** source pane, divider and visual pane laid out for the current view mode */
@@ -283,6 +285,7 @@ export function Panes({
   children,
   sourceNote,
   keepSourceMounted = false,
+  overlay,
 }: PanesProps) {
   const { mode, sourceSeed, sourceRef, onSourceChange } = views
   const [ratio, setRatio] = useState(() => {
@@ -358,6 +361,7 @@ export function Panes({
       >
         {children}
       </div>
+      {overlay}
     </div>
   )
 }

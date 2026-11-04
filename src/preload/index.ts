@@ -10,6 +10,10 @@ const api: EditorApi = {
   saveImage: (input) => ipcRenderer.invoke(IPC.saveImage, input),
   pickImage: () => ipcRenderer.invoke(IPC.pickImage),
   readAsset: (relPath) => ipcRenderer.invoke(IPC.readAsset, relPath),
+  preview: async (html) => {
+    const url: string | null = await ipcRenderer.invoke(IPC.preview, html)
+    return url ? { url } : null
+  },
   showKindMenu: () => ipcRenderer.send(IPC.kindMenu),
   openPaths: (paths) => ipcRenderer.send(IPC.openPaths, paths),
   pathForFile: (file) => webUtils.getPathForFile(file),

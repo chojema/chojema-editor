@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title></title>
+    <!--
+      Run preview host for the browser build. The editor loads this page in a
+      sandboxed frame (opaque origin, no access to the editor) and posts the
+      document text; the page replaces itself with it, so the document's own
+      scripts run under this page's policy rather than the editor's.
+    -->
+    <script>
+      addEventListener('message', function (event) {
+        if (event.source !== parent || typeof event.data !== 'string') return
+        document.open()
+        document.write(event.data)
+        document.close()
+      }, { once: true })
+    </script>
+  </head>
+  <body></body>
+</html>

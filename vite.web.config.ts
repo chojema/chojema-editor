@@ -16,5 +16,12 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, 'out/web'),
     emptyOutDir: true,
+    rollupOptions: {
+      // preview.html hosts the HTML editor's run preview
+      input: {
+        index: resolve(__dirname, 'src/web/index.html'),
+        preview: resolve(__dirname, 'src/web/preview.html'),
+      },
+    },
   },
 })

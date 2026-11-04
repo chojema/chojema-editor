@@ -27,10 +27,28 @@ import { RAW_HTML_EDIT_EVENT, type RawHtmlEditDetail } from './rawHtml'
 import { BARE_ATTR } from './preserve'
 import { KEEP_ALL, setBodyKeepAll, styleWordBreak } from './wordBreak'
 import { useSourceCommands } from '../sourceCommands'
+import { RunPreview } from './RunPreview'
 
 const CANVAS = 'html-canvas'
 const BODY_TAG_END = /<body\b[^>]*>$/i
 const SCOPE = `.${CANVAS}`
+const RUN_PREVIEW_KEY = 'chojema.runPreview'
+
+function readRunPreviewPref(): boolean {
+  try {
+    return localStorage.getItem(RUN_PREVIEW_KEY) === 'on'
+  } catch {
+    return false
+  }
+}
+
+function writeRunPreviewPref(open: boolean): void {
+  try {
+    localStorage.setItem(RUN_PREVIEW_KEY, open ? 'on' : 'off')
+  } catch {
+    // a blocked store only forgets whether the pane was open
+  }
+}
 
 function joinPath(dir: string, rel: string): string {
   const parts = `${dir.replace(/\\/g, '/')}/${rel}`.split('/')
@@ -107,6 +125,15 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
   const [find, setFind] = useState<{ replace: boolean } | null>(null)
   const [outlineOpen, setOutlineOpen] = useOutlinePref()
   const [rawEdit, setRawEdit] = useState<RawHtmlEditDetail | null>(null)
+  const [runPreviewOpen, setRunPreviewOpen] = useState(readRunPreviewPref)
+  /** the open run preview's refresh scheduler, called after every edit in either pane */
+  const previewNotifyRef = useRef<(() => void) | null>(null)
+  const toggleRunPreview = useCallback(() => {
+    setRunPreviewOpen((open) => {
+      writeRunPreviewPref(!open)
+      return !open
+    })
+  }, [])
 
   setImageBaseDir(path ? dirOf(path) : null)
 
@@ -140,6 +167,7 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
       onDirtyRef.current()
       onStatsRef.current(statsOf(updated.getText()))
       editorUpdateRef.current()
+      previewNotifyRef.current?.()
     },
   })
 
@@ -174,7 +202,12 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
     return serializeHtmlDocument(envelopeRef.current, cleanSerializedHtml(editor.getHTML(), BARE_ATTR))
   }, [editor, startText])
 
-  const views = useViewModes({ prefKey: 'html', serialize, load, onDirty, onStats, initialSource: startText })
+  // source edits reach the run preview through the dirty notice
+  const onSourceDirty = useCallback(() => {
+    onDirtyRef.current()
+    previewNotifyRef.current?.()
+  }, [])
+  const views = useViewModes({ prefKey: 'html', serialize, load, onDirty: onSourceDirty, onStats, initialSource: startText })
   const commands = useSourceCommands(editor, 'html', views)
   const tableTools = useTableTools(editor, 'html', views)
   editorUpdateRef.current = views.onEditorUpdate
@@ -301,6 +334,8 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
         sourceHistory={views.activePane === 'source' ? views.sourceSelection : undefined}
         docKeepAll={docKeepAll}
         onDocKeepAll={setDocKeepAll}
+        runPreviewOpen={runPreviewOpen}
+        onToggleRunPreview={toggleRunPreview}
       />
       {find && editor && views.mode !== 'source' && (
         <FindBar editor={editor} withReplace={find.replace} onClose={() => setFind(null)} />
@@ -321,6 +356,9 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
             <EditorContent editor={editor} />
           </div>
         </Panes>
+        {runPreviewOpen && (
+          <RunPreview getHtml={views.peekContent} notifyRef={previewNotifyRef} onClose={toggleRunPreview} />
+        )}
       </div>
       <TableMenu tools={tableTools} scrollRef={scrollRef} zoom={zoom} />
       {rawEdit && (

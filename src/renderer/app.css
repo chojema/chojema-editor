@@ -411,6 +411,71 @@ button {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
+/* ---- run preview: the HTML page running beside the editor ---- */
+
+.run-preview {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+}
+
+.run-preview-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  padding: 0 4px 0 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.run-preview-title {
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.run-preview-btn {
+  width: 24px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.run-preview-btn:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text);
+}
+
+/* pages assume the browser's white canvas unless they paint their own */
+.run-preview-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #fff;
+}
+
+.run-preview-note {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+body.is-resizing .run-preview {
+  pointer-events: none;
+}
+
 body.is-resizing {
   cursor: col-resize;
   user-select: none;

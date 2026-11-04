@@ -29,6 +29,7 @@ import {
   IconPicture,
   IconQuoteMark,
   IconRedo,
+  IconRunPreview,
   IconSave,
   IconSourceCode,
   IconSubscript,
@@ -81,6 +82,9 @@ interface Props {
   /** HTML: keep-all on the <body> tag; null when the document has no <body> tag */
   docKeepAll?: boolean | null
   onDocKeepAll?: (on: boolean) => void
+  /** HTML: the run preview beside the editor; the button shows only when this is given */
+  runPreviewOpen?: boolean
+  onToggleRunPreview?: () => void
 }
 
 const MODES: { mode: ViewMode; label: StringKey; tip: StringKey }[] = [
@@ -407,6 +411,8 @@ export function Toolbar({
   sourceHistory,
   docKeepAll = null,
   onDocKeepAll = () => {},
+  runPreviewOpen = false,
+  onToggleRunPreview,
 }: Props) {
   const state = useEditorState({
     editor,
@@ -614,6 +620,11 @@ export function Toolbar({
       <Btn label={t('outlineTip')} active={outlineOpen} disabled={mode === 'source'} onClick={onToggleOutline}>
         <IconOutlineView size={18} />
       </Btn>
+      {onToggleRunPreview && (
+        <Btn label={t('runPreviewTip')} active={runPreviewOpen} onClick={onToggleRunPreview}>
+          <IconRunPreview size={18} />
+        </Btn>
+      )}
       <ViewModeSwitch mode={mode} onMode={onMode} />
     </div>
   )

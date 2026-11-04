@@ -54,6 +54,17 @@ function Svg({ size = 20, children }: IconProps & { children: ReactNode }) {
   )
 }
 
+/* a page frame with a play mark: run the page as a browser would */
+export function IconRunPreview(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="1.8" y="2.4" width="12.4" height="11.2" rx="1.6" />
+      <path d="M1.8 5.4h12.4" opacity="0.55" />
+      <path d="M6.6 7.6v3.8l3.2-1.9z" fill="currentColor" />
+    </Svg>
+  )
+}
+
 export function IconTaskList(props: IconProps) {
   return (
     <Svg {...props}>

@@ -89,6 +89,12 @@ export type MenuCommand =
   | 'print'
   | 'copyRich'
 
+export interface PreviewTarget {
+  url: string
+  /** sent to the loaded frame with postMessage; the host page writes it as its document */
+  post?: string
+}
+
 export interface EditorApi {
   getInitialDoc(): Promise<InitialDoc>
   /** write `content` to the current path, or ask for one when the document is untitled */
@@ -101,6 +107,11 @@ export interface EditorApi {
   pickImage(): Promise<string | null>
   /** read a stylesheet or other text asset next to an HTML document */
   readAsset(relPath: string): Promise<string | null>
+  /**
+   * show `html` in the run preview; returns the URL a sandboxed iframe loads,
+   * plus the text to post to it once loaded when the page cannot be served
+   */
+  preview?(html: string): Promise<PreviewTarget | null>
   /** pop up the document-type menu (switches an empty window in place, else opens a new one) */
   showKindMenu(): void
   /** open files dropped on a window (each in its own window, or this one when it is empty) */
@@ -133,6 +144,7 @@ export const IPC = {
   saveImage: 'doc:save-image',
   pickImage: 'doc:pick-image',
   readAsset: 'doc:read-asset',
+  preview: 'doc:preview',
   openPaths: 'doc:open-paths',
   kindMenu: 'doc:kind-menu',
   exportRaster: 'export:raster',

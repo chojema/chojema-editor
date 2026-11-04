@@ -454,6 +454,8 @@ function createWebApi(): EditorApi {
     },
     // a page cannot read files beside the document it was given
     readAsset: async () => null,
+    // the document cannot be served from a URL here, so a host page is sent it by message
+    preview: async (html) => ({ url: new URL('preview.html', document.baseURI).href, post: html }),
     showKindMenu: showMenu,
     openPaths(paths) {
       const files = paths.flatMap((key) => {

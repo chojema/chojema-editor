@@ -22,6 +22,7 @@ import { RASTER_FORMATS, validRasterRequest, type RasterExportRequest } from '..
 import { mainText } from './strings'
 import { REPOSITORY_URL, refreshAboutWindow, showAboutWindow } from './about'
 import { decodeText, type TextEncoding } from '../shared/encoding'
+import { dropPreview, registerPreviewProtocol, registerPreviewScheme, setPreview } from './preview'
 
 const APP_NAME = 'Chojema Editor'
 
@@ -51,6 +52,7 @@ protocol.registerSchemesAsPrivileged([
     scheme: 'md-asset',
     privileges: { secure: true, supportFetchAPI: true, corsEnabled: true, bypassCSP: true },
   },
+  registerPreviewScheme(),
 ])
 
 const SERVABLE_EXTS = new Set([
@@ -171,7 +173,10 @@ function createWindow(path: string | null, kind: DocKind = docKindForPath(path))
     void confirmClose(win, doc)
   })
   const id = win.id
-  win.on('closed', () => docs.delete(id))
+  win.on('closed', () => {
+    docs.delete(id)
+    dropPreview(id)
+  })
 
   if (process.env.ELECTRON_RENDERER_URL) {
     void win.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -764,6 +769,12 @@ function registerIpc(): void {
     clipboard.write({ html: String(html), text: String(text) })
   })
 
+  ipcMain.handle(IPC.preview, (event, html: unknown) => {
+    const found = docFor(event.sender)
+    if (!found || typeof html !== 'string') return null
+    return setPreview(found.win.id, html, found.doc.path)
+  })
+
   ipcMain.handle(IPC.readAsset, async (event, relPath: string) => {
     const found = docFor(event.sender)
     if (!found?.doc.path || typeof relPath !== 'string') return null
@@ -808,6 +819,7 @@ if (!singleInstance) {
       app.dock?.setIcon(DEV_ICON)
     }
     registerAssetProtocol()
+    registerPreviewProtocol((id) => docs.get(id)?.path)
     registerIpc()
     buildMenu()
     const initial = [...pendingOpens, ...filesFromArgv(process.argv)]

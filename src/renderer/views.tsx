@@ -161,6 +161,13 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initi
     [flushSource],
   )
 
+  /** the current text without settling either pane, for read-only views of the document */
+  const peekContent = useCallback((): string => {
+    if (pending.current === 'source' && pendingSourceRef.current !== null) return pendingSourceRef.current
+    if (modeRef.current === 'visual' || pending.current === 'visual') return fns.current.serialize()
+    return sourceRef.current?.getValue() ?? syncedRef.current
+  }, [])
+
   /** the text a save writes: the source pane when it is open, else the visual editor */
   const getContent = useCallback((): string => {
     settle()
@@ -198,6 +205,7 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initi
     onEditorUpdate,
     onSourceChange,
     getContent,
+    peekContent,
     settle,
     lastPaneRef,
     activePane: mode === 'source' ? 'source' as const : activePane,

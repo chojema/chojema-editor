@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-04
+
 ### Added
 - HTML 문서의 실행 미리보기 창(도구 모음의 ▶ 버튼). 스크립트, 외부 JS·CSS, 모듈, fetch까지 브라우저처럼 실행해 편집 화면 옆에 표시하고, 편집을 멈추면 잠시 뒤 다시 불러옴. 저장하지 않은 편집도 반영. 문서와 같은 폴더 안의 파일만 불러오며, 미리보기 페이지는 격리되어 편집기에 접근할 수 없음. 읽기 전용.
 
@@ -142,7 +144,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.7...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/chojema/chojema-editor/compare/v0.7.7...v0.8.0
 [0.7.7]: https://github.com/chojema/chojema-editor/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/chojema/chojema-editor/compare/v0.7.5...v0.7.6
 [0.7.5]: https://github.com/chojema/chojema-editor/compare/v0.7.4...v0.7.5

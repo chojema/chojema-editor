@@ -1,7 +1,7 @@
 {
   "name": "chojema-editor",
   "productName": "Chojema Editor",
-  "version": "0.7.7",
+  "version": "0.8.0",
   "description": "Text editor with WYSIWYG Markdown and HTML editing",
   "author": "Chulwoo Park",
   "homepage": "https://github.com/chojema/chojema-editor#readme",

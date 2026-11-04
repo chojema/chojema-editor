@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-04
+
 ### Fixed
 - 표 안에 커서가 있을 때 뜨는 표 편집 막대가 찾기 막대를 가리던 문제. 이제 찾기 막대 왼쪽으로 비켜서고, 자리가 없으면 표 아래나 찾기 막대 아래로 옮겨감. 찾기 막대를 열고 닫거나 바꾸기 줄을 펼치면 바로 자리를 다시 잡음.
 - 창이 좁아 도구 모음이 두 줄로 접히면 찾기 막대가 둘째 줄(보기 방식 버튼 등)을 가리던 문제. 찾기 막대는 이제 도구 모음 높이와 상관없이 편집 영역 위에 뜨며, HTML의 실행 미리보기 창 머리글도 가리지 않음.
@@ -148,7 +150,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/chojema/chojema-editor/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/chojema/chojema-editor/compare/v0.7.7...v0.8.0
 [0.7.7]: https://github.com/chojema/chojema-editor/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/chojema/chojema-editor/compare/v0.7.5...v0.7.6

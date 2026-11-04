@@ -5,6 +5,11 @@
 
 ## [Unreleased]
 
+## [0.7.7] - 2026-11-04
+
+### Changed
+- 앱 시작 속도 개선. 앱 코드를 압축해 배포하고, 수식 렌더러(KaTeX)와 코드 구문 강조 문법은 문서에 수식이나 코드 블록이 있을 때만 불러옴. 이런 문서는 열 때 잠시 수식 원문이나 색 없는 코드로 보였다가 바뀔 수 있음.
+
 ## [0.7.6] - 2026-11-03
 
 ### Added
@@ -134,7 +139,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.6...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.7.7...HEAD
+[0.7.7]: https://github.com/chojema/chojema-editor/compare/v0.7.6...v0.7.7
 [0.7.6]: https://github.com/chojema/chojema-editor/compare/v0.7.5...v0.7.6
 [0.7.5]: https://github.com/chojema/chojema-editor/compare/v0.7.4...v0.7.5
 [0.7.4]: https://github.com/chojema/chojema-editor/compare/v0.7.3...v0.7.4

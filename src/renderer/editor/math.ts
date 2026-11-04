@@ -2,7 +2,7 @@ import type { AnyExtension } from '@tiptap/core'
 import { Extension } from '@tiptap/core'
 import { Plugin } from '@tiptap/pm/state'
 import { DOMParser as ProseMirrorDOMParser, DOMSerializer } from '@tiptap/pm/model'
-import { BlockMath, InlineMath } from '@tiptap/extension-mathematics'
+import { BlockMath, InlineMath } from './mathNodes'
 import { openMathEditor } from './mathEdit'
 import { matchInlineMath, strictInlineMathStart } from './mathSyntax'
 

@@ -1,4 +1,4 @@
-import katex from 'katex'
+import { loadKatex, loadedKatex } from './katexLoader'
 import type { Editor } from '@tiptap/core'
 import { t } from '../i18n/locale'
 
@@ -85,7 +85,12 @@ export function openMathEditor(editor: Editor, options: OpenMathOptions): void {
       preview.textContent = ''
       return
     }
-    katex.render(latex, preview, { throwOnError: false, displayMode: isBlock })
+    const katex = loadedKatex()
+    if (katex) katex.render(latex, preview, { throwOnError: false, displayMode: isBlock })
+    else {
+      preview.textContent = latex
+      loadKatex().then(renderPreview, () => {})
+    }
   }
   input.addEventListener('input', renderPreview)
 

@@ -3,8 +3,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { Table, TableKit } from '@tiptap/extension-table'
 import { OrderedList, TaskList } from '@tiptap/extension-list'
 import { LooseBulletList, LooseOrderedList, LooseTaskList } from './looseLists'
-import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
-import { lowlight } from './lowlight'
+import { CodeBlockLowlight } from './lowlight'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { Placeholder } from '@tiptap/extensions'
 import { CodeBlockView } from './CodeBlockView'
@@ -105,7 +104,7 @@ export function buildExtensions(options: BuildExtensionsOptions): AnyExtension[]
           String(node.attrs?.language ?? ''),
           node.content ? h.renderChildren(node.content) : null,
         ),
-    }).configure({ lowlight, defaultLanguage: null }),
+    }).configure({ defaultLanguage: null }),
     SelectiveEscapeMarkdown,
     MarkdownTableSafety,
     PreservedHtmlTable,

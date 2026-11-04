@@ -8,8 +8,7 @@ import { TextAlign } from '@tiptap/extension-text-align'
 import { Subscript } from '@tiptap/extension-subscript'
 import { Superscript } from '@tiptap/extension-superscript'
 import { Placeholder } from '@tiptap/extensions'
-import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight'
-import { lowlight } from '../editor/lowlight'
+import { CodeBlockLowlight } from '../editor/lowlight'
 import { LinkShortcut } from '../editor/blockKeymap'
 import { LocalImage } from '../editor/localImage'
 import { MarkdownLinkOpen } from '../editor/linkOpen'
@@ -62,7 +61,7 @@ export function buildHtmlExtensions(): AnyExtension[] {
       // replaced below by the syntax-coloured variant
       codeBlock: false,
     }),
-    CodeBlockLowlight.configure({ lowlight, defaultLanguage: null }),
+    CodeBlockLowlight.configure({ defaultLanguage: null }),
     LinkShortcut,
     TextStyleKit,
     Highlight.configure({ multicolor: true }),

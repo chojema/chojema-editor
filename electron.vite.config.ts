@@ -8,5 +8,8 @@ export default defineConfig({
   renderer: {
     plugins: [react()],
     resolve: { dedupe: TIPTAP_DEDUPE },
+    // electron-vite leaves the renderer unminified by default; the 4 MB entry
+    // chunk then has to be parsed and compiled on every window open
+    build: { minify: true },
   },
 })

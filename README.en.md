@@ -44,7 +44,7 @@ The web version can only do what the browser allows, so some things differ from 
 |---|---|---|
 | Saving | Saves to the original file | Chrome/Edge: pick a location on the first save, later saves go to the same file. Firefox/Safari: every save downloads the file |
 | Opening | Open dialog, drag and drop, double-clicking a file | Open dialog and drag and drop only. A dropped file asks for a location on its first save |
-| Pasted images | Saved as files in an `assets/` folder beside the document | Embedded in the document (data URI), which makes the file larger |
+| Pasted images | Saved as files in an `assets/` folder beside the document | Embedded in the document, which makes the file larger |
 | Files beside the document | Relative images and external CSS of HTML files are shown | Cannot be read, so they are not shown (web addresses still work) |
 | PDF export | Writes a PDF file directly | Opens the print dialog; choose "Save as PDF". Margins and headers follow the browser settings |
 | Several documents | One window per document | One tab per document |
@@ -66,7 +66,7 @@ The web version can only do what the browser allows, so some things differ from 
 
 Choose **Export as Image…** in the toolbar or File → Export to save PNG, JPG or WebP. PNG and WebP support transparent backgrounds; JPG uses the selected background color. Choose 1–4× scale and JPG/WebP quality (1–100). Backgrounds drawn inside the SVG are preserved. The web version downloads the image file.
 
-Open a `.svg` file or choose File → New SVG Document to see source and image side by side. Source edits update the preview after a short pause. Live Preview and Source modes, adjustable pane widths, find & replace and undo are supported; saving preserves the SVG source. Invalid XML shows an error and renders again once corrected. The preview uses an image document, so scripts and external images/stylesheets are not loaded or executed.
+Open a `.svg` file or choose File → New SVG Document to see source and image side by side. Source edits update the preview after a short pause. Live Preview and Source modes, adjustable pane widths, find & replace and undo are supported; saving preserves the SVG source. Invalid XML shows an error and renders again once corrected. The preview does not run scripts or display external images/stylesheets.
 
 ### Views (Markdown and HTML)
 
@@ -84,7 +84,7 @@ The source pane colours tags, attributes, values and comments (with separate lig
 
 ### Changing the document type
 
-The app opens with an empty Markdown document. Click the document type at the left of the status bar (**Markdown ▾**), or choose New Text Document (`⌘N`), New Markdown Document (`⇧⌘N`) New HTML Document (`⌥⌘N`) or New JSON Document (`⌥⌘J`) in the File menu. A window you have not typed in yet switches in place; a window with content or a saved file opens a new window instead.
+Opening the app without a file starts an empty text document. The web version restores your previous document when available. Click the document type at the left of the status bar (**Text ▾**, for example), or choose New Text Document (`⌘N`), New Markdown Document (`⇧⌘N`) New HTML Document (`⌥⌘N`) or New JSON Document (`⌥⌘J`) in the File menu. A window you have not typed in yet switches in place; a window with content or a saved file opens a new window instead.
 
 ### More
 
@@ -99,7 +99,7 @@ The app opens with an empty Markdown document. Click the document type at the le
 - **Text size**: the **− 100% +** buttons at the right of the status bar (`⌘−` / `⌘=`, `⌘0` for actual size). Applies to text documents, the visual editor and the source pane
 - **Copy on select**: turn it on with the **Copy on select** button in the status bar or Edit → Copy on Select. Selected text then goes to the clipboard right away and a short "✓ Copied" tag appears; the visual editor copies formatting too
 - **Language** (View → Language: Follow System / 한국어 / English). Applies immediately to all windows while preserving your edits.
-- **Korean word wrapping** (HTML): the wrap button next to the alignment buttons turns it on for the whole document, the selected paragraphs or the selected table cells. It adds `word-break: keep-all` so Korean words are not split between syllables at line breaks. The whole-document setting goes on the `<body>` tag and is not undone by `⌘Z`; toggle it off instead. A word longer than its box is not broken and may overflow
+- **Korean word wrapping** (HTML): the wrap button next to the alignment buttons turns it on for the whole document, the selected paragraphs or the selected table cells. Korean words are not split between syllables at line breaks. Undo the change with `⌘Z`. A word longer than its box is not broken and may overflow
 - **Links** (`⌘K`; HTML documents can choose "Open in new window"), **themes** (View → Theme: system / light / dark)
 
 ### How the original text is preserved

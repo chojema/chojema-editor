@@ -56,7 +56,7 @@ interface PendingOpen {
 
 const SESSION_KEY = () => `session:${tabId()}`
 
-let session: Session = blankSession('markdown')
+let session: Session = blankSession('text')
 let handle: FileHandle | null = null
 let dirty = false
 
@@ -178,7 +178,7 @@ async function initialSession(): Promise<Session> {
   }
   if (newKind === 'text' || newKind === 'markdown' || newKind === 'html' || newKind === 'json' || newKind === 'svg') return blankSession(newKind)
   const saved = await getItem<Session>(SESSION_KEY())
-  if (!saved) return blankSession('markdown')
+  if (!saved) return blankSession('text')
   handle = saved.handleId ? ((await getItem<FileHandle>(`handle:${saved.handleId}`)) ?? null) : null
   return saved
 }

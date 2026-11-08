@@ -1,9 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { autocompletion, closeBrackets, completionKeymap } from '@codemirror/autocomplete'
 import { defaultKeymap, history, historyKeymap, indentWithTab, undo, redo, undoDepth, redoDepth, isolateHistory } from '@codemirror/commands'
-import { html } from '@codemirror/lang-html'
-import { json } from '@codemirror/lang-json'
-import { markdown } from '@codemirror/lang-markdown'
 import {
   bracketMatching,
   foldGutter,
@@ -13,7 +10,9 @@ import {
 import { highlightSelectionMatches, openSearchPanel, search, searchKeymap } from '@codemirror/search'
 import { Annotation, Compartment, EditorState, Transaction, type Extension } from '@codemirror/state'
 import { sourceHighlight } from './sourceHighlight'
-import { jsonLint } from '../json/jsonLint'
+import { loadedLanguage, loadLanguage, type CodeLanguage } from './languages'
+import { showToast } from '../components/toast-bus'
+import { t } from '../i18n/locale'
 import {
   drawSelection,
   EditorView,
@@ -27,7 +26,7 @@ import {
 /** marks setValue transactions so they are not reported as user edits */
 const programmatic = Annotation.define<boolean>()
 
-export type CodeLanguage = 'text' | 'markdown' | 'html' | 'json' | 'svg'
+export type { CodeLanguage } from './languages'
 
 export interface CodeEditorHandle {
   getValue(): string
@@ -80,13 +79,6 @@ function fontTheme(scale: number): Extension {
   return EditorView.theme({ '&': { fontSize: `${Math.round(BASE_FONT_PX * scale * 10) / 10}px` } })
 }
 
-function languageExtension(language: CodeLanguage): Extension {
-  if (language === 'markdown') return markdown()
-  if (language === 'html' || language === 'svg') return html()
-  if (language === 'json') return [json(), jsonLint()]
-  return []
-}
-
 const theme = EditorView.theme({
   '&': { height: '100%', backgroundColor: 'var(--surface)', color: 'var(--text)' },
   '.cm-scroller': {
@@ -94,6 +86,8 @@ const theme = EditorView.theme({
     lineHeight: '1.6',
   },
   '.cm-content': { caretColor: 'var(--text)', padding: '12px 0' },
+  // drawSelection hides the native caret and draws a border-based cursor instead.
+  '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--text)' },
   '.cm-gutters': {
     backgroundColor: 'var(--surface)',
     color: 'var(--text-muted)',
@@ -137,6 +131,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
   const wrapCompartment = useRef(new Compartment())
   const fontCompartment = useRef(new Compartment())
   const completionCompartment = useRef(new Compartment())
+  const languageCompartment = useRef(new Compartment())
   const onChangeRef = useRef(onChange)
   const onStatsRef = useRef(onStats)
   onChangeRef.current = onChange
@@ -167,7 +162,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
         highlightSelectionMatches(),
         search({ top: true }),
         syntaxHighlighting(sourceHighlight),
-        languageExtension(language),
+        languageCompartment.current.of(loadedLanguage(language)),
         // before the default keys, so Enter/Esc go to an open completion list first
         completionCompartment.current.of(completionExtension(language, completion)),
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, indentWithTab]),
@@ -203,6 +198,20 @@ export const CodeEditor = forwardRef<CodeEditorHandle, Props>(function CodeEdito
     }
     // the document is created once; later text arrives through setValue
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language])
+
+  useEffect(() => {
+    if (language === 'text') return
+    const view = viewRef.current
+    let current = true
+    void loadLanguage(language).then(() => {
+      if (current && view && viewRef.current === view) {
+        view.dispatch({ effects: languageCompartment.current.reconfigure(loadedLanguage(language)) })
+      }
+    }).catch(() => {
+      if (current) showToast(t('syntaxLoadFailed'), 'error')
+    })
+    return () => { current = false }
   }, [language])
 
   useEffect(() => {

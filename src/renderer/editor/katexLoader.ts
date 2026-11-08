@@ -1,14 +1,19 @@
 import type KatexModule from 'katex'
+import { deferredModule } from '../deferredModule'
 
 type Katex = typeof KatexModule
 
 let katex: Katex | null = null
-let loading: Promise<Katex> | null = null
+const load = deferredModule(async () => {
+  const [{ default: module }] = await Promise.all([
+    import('katex'), import('katex/dist/katex.min.css'),
+  ])
+  return (katex = module)
+})
 
 /** KaTeX loads on the first formula, so documents without math never pay for it */
 export function loadKatex(): Promise<Katex> {
-  loading ??= import('katex').then(({ default: module }) => (katex = module))
-  return loading
+  return load()
 }
 
 /** The KaTeX module when it is already loaded, else null */

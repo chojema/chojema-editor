@@ -823,11 +823,11 @@ if (!singleInstance) {
     registerIpc()
     buildMenu()
     const initial = [...pendingOpens, ...filesFromArgv(process.argv)]
-    if (initial.length === 0) createWindow(null, 'markdown')
+    if (initial.length === 0) createWindow(null, 'text')
     for (const path of initial) createWindow(path)
 
     app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow(null, 'markdown')
+      if (BrowserWindow.getAllWindows().length === 0) createWindow(null, 'text')
     })
   })
 

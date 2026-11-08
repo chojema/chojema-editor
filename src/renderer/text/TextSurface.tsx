@@ -1,7 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react'
 import { CodeEditor, type CodeEditorHandle } from './CodeEditor'
 import { countWords, type SurfaceHandle, type SurfaceProps } from '../surface'
-import { textPage } from '../exportPage'
 import { t } from '../i18n/locale'
 
 /** plain text files: the bytes are the document, no visual layer */
@@ -26,10 +25,18 @@ export const TextSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Text
     toggleSource: () => {},
     toggleOutline: () => {},
     openFind: () => codeRef.current?.openFind(),
-    exportPage: async () => ({ html: textPage(text(), title()), baseDir: null }),
+    exportPage: async () => {
+      const content = text()
+      const pageTitle = title()
+      const { textPage } = await import('../exportPage')
+      return { html: textPage(content, pageTitle), baseDir: null }
+    },
     richCopy: async () => {
-      const page = textPage(text(), title())
-      return { html: page.slice(page.indexOf('<pre>'), page.indexOf('</pre>') + 6), text: text() }
+      const content = text()
+      const pageTitle = title()
+      const { textPage } = await import('../exportPage')
+      const page = textPage(content, pageTitle)
+      return { html: page.slice(page.indexOf('<pre>'), page.indexOf('</pre>') + 6), text: content }
     },
   }))
 

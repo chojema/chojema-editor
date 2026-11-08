@@ -5,6 +5,15 @@
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-11-08
+
+### Changed
+- 앱을 파일 지정 없이 실행하면 빈 텍스트 문서로 시작하도록 변경. 웹에서도 저장된 탭 상태가 없으면 빈 텍스트 문서로 시작함.
+- 텍스트 편집기를 먼저 불러오고 다른 형식의 편집기는 입력이 없는 유휴 시간에 간격을 두고 순차적으로 불러옴. 문서를 직접 열면 해당 편집기를 바로 불러오며, 실패하면 다시 시도할 수 있음. 문법 분석 모듈, 수식 스타일과 내보내기 변환 코드도 필요한 시점에 불러오도록 분리.
+
+### Fixed
+- 어두운 테마의 텍스트 및 소스 편집기에서 입력 커서가 배경과 구분되도록 테마 글자색을 적용.
+
 ## [0.8.1] - 2026-11-04
 
 ### Fixed
@@ -150,7 +159,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/chojema/chojema-editor/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/chojema/chojema-editor/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/chojema/chojema-editor/compare/v0.7.7...v0.8.0
 [0.7.7]: https://github.com/chojema/chojema-editor/compare/v0.7.6...v0.7.7

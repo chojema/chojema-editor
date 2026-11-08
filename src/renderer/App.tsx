@@ -3,12 +3,9 @@ import { EditorView } from '@codemirror/view'
 import { undo as undoCode, redo as redoCode } from '@codemirror/commands'
 import { docKindForPath, type DocKind, type InitialDoc } from '../shared/ipc'
 import { lineEnding, type TextEncoding } from '../shared/encoding'
-import { htmlToMarkdown } from './html/toMarkdown'
-import { MarkdownSurface } from './markdown/MarkdownSurface'
-import { HtmlSurface } from './html/HtmlSurface'
 import { TextSurface } from './text/TextSurface'
-import { SvgSurface } from './svg/SvgSurface'
-import { JsonSurface } from './json/JsonSurface'
+import { editorWarmups, loadSurface, type DeferredKind, type SurfaceComponent } from './editorModules'
+import { warmIdleModules } from './idleModules'
 import { ToastHost } from './components/toast'
 import { AutoCopy } from './components/AutoCopy'
 import { showToast } from './components/toast-bus'
@@ -59,6 +56,28 @@ export function App() {
   const [autoCopy, setAutoCopy] = useState(false)
   const [autoComplete, setAutoComplete] = useState(true)
   const surfaceRef = useRef<SurfaceHandle>(null)
+  const [loaded, setLoaded] = useState<{ kind: DeferredKind; Surface: SurfaceComponent } | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const kind = initial?.kind
+  const Surface = kind === 'text' ? TextSurface : loaded && loaded.kind === kind ? loaded.Surface : null
+
+  useEffect(() => {
+    if (!kind || kind === 'text') return
+    let current = true
+    setLoadFailed(false)
+    void loadSurface(kind).then((component) => {
+      if (current) setLoaded({ kind, Surface: component })
+    }).catch(() => {
+      if (current) setLoadFailed(true)
+    })
+    return () => { current = false }
+  }, [kind, loadAttempt])
+
+  // Start only after an editor has mounted. Warming must not replace it or its history.
+  useEffect(() => {
+    if (Surface) return warmIdleModules(editorWarmups)
+  }, [Surface])
 
   useEffect(() => {
     let languageChanged = false
@@ -151,7 +170,9 @@ export function App() {
     try {
       if (target === 'markdown') {
         if (initial?.kind !== 'html') return
-        const result = await window.editorApi.exportMarkdown(htmlToMarkdown(surface.getContent()))
+        const content = surface.getContent()
+        const { htmlToMarkdown } = await import('./html/toMarkdown')
+        const result = await window.editorApi.exportMarkdown(htmlToMarkdown(content))
         if (result.ok) showToast(t('exported'))
         else if (result.error) showToast(t('exportFailed', { error: result.error }), 'error')
         return
@@ -238,6 +259,8 @@ export function App() {
             void surface?.richCopy().then(({ html, text }) => {
               window.editorApi.copyRich(html, text)
               showToast(t('copiedRich'))
+            }).catch((error: unknown) => {
+              showToast(t('copyFailed', { error: String(error) }), 'error')
             })
             break
         }
@@ -247,7 +270,14 @@ export function App() {
 
   useEffect(() => window.editorApi.onSaveBeforeClose(() => save()), [save])
 
-  if (!initial) return <div className="app-loading">{t('loading')}</div>
+  if (!initial || !Surface) return (
+    <div className="app-loading" role={loadFailed ? 'alert' : 'status'}>
+      {loadFailed ? <div>
+        <p>{t('editorLoadFailed')}</p>
+        <button type="button" onClick={() => setLoadAttempt((value) => value + 1)}>{t('retry')}</button>
+      </div> : t('loading')}
+    </div>
+  )
 
   const surfaceProps = {
     kind: initial.kind,
@@ -263,11 +293,7 @@ export function App() {
 
   return (
     <div className="app">
-      {initial.kind === 'markdown' && <MarkdownSurface ref={surfaceRef} {...surfaceProps} />}
-      {initial.kind === 'html' && <HtmlSurface ref={surfaceRef} {...surfaceProps} />}
-      {initial.kind === 'text' && <TextSurface ref={surfaceRef} {...surfaceProps} />}
-      {initial.kind === 'svg' && <SvgSurface ref={surfaceRef} {...surfaceProps} />}
-      {initial.kind === 'json' && <JsonSurface ref={surfaceRef} {...surfaceProps} />}
+      <Surface ref={surfaceRef} {...surfaceProps} />
       <footer className="status-bar">
         <button
           type="button"

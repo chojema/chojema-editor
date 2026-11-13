@@ -38,6 +38,12 @@ export const TextSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Text
       const page = textPage(content, pageTitle)
       return { html: page.slice(page.indexOf('<pre>'), page.indexOf('</pre>') + 6), text: content }
     },
+    applyImportedContent: (imported, mode) => {
+      const cur = text()
+      const next = mode === 'append' && cur ? `${cur}${cur.endsWith('\n') ? '' : '\n'}${imported}` : imported
+      codeRef.current?.setValue(next, true)
+      onDirty()
+    },
   }))
 
   return (

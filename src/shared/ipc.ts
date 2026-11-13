@@ -10,6 +10,23 @@ export const MAX_PASTED_IMAGE_BYTES = 20 * 1024 * 1024
 /** which editing surface a document opens on */
 export type DocKind = 'text' | 'markdown' | 'html' | 'json' | 'svg'
 
+/** document surfaces that support cross-format import and export */
+export type EditableKind = 'text' | 'markdown' | 'html'
+
+export function isEditableKind(kind: DocKind | undefined): kind is EditableKind {
+  return kind === 'text' || kind === 'markdown' || kind === 'html'
+}
+
+/** external document extensions converted on open/import */
+export const EXTERNAL_IMPORT_RE = /\.(hwp|hwpx|docx|pdf)$/i
+
+/** all file extensions this editor can open or drop */
+export const OPENABLE_FILE_RE = /\.(md|markdown|mdown|mkd|html?|xhtml|txt|json|svg|hwp|hwpx|docx|pdf)$/i
+
+export function isExternalImportPath(path: string | null | undefined): boolean {
+  return !!path && EXTERNAL_IMPORT_RE.test(path)
+}
+
 export function docKindForPath(path: string | null | undefined): DocKind {
   const ext = (path ?? '').toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? ''
   if (ext === 'md' || ext === 'markdown' || ext === 'mdown' || ext === 'mkd') return 'markdown'
@@ -40,6 +57,29 @@ export interface InitialDoc {
   autoCopy: boolean
   /** app-wide preference: tag and attribute completions in source panes */
   autoComplete: boolean
+  /** non-native file opened directly for conversion into text, markdown, or html */
+  importFile?: {
+    name: string
+    bytes: Uint8Array
+  }
+}
+
+export interface ImportedFilePayload {
+  name: string
+  path: string | null
+  bytes: Uint8Array
+}
+
+export interface BinaryExportRequest {
+  format: 'docx' | 'hwpx'
+  bytes: Uint8Array
+  defaultName?: string
+}
+
+export interface TextExportRequest {
+  format: 'text' | 'markdown'
+  text: string
+  defaultName?: string
 }
 
 export interface SaveResult {
@@ -83,9 +123,13 @@ export type MenuCommand =
   | 'zoomReset'
   | 'toggleWrap'
   | 'exportImage'
+  | 'exportText'
   | 'exportHtml'
   | 'exportMarkdown'
+  | 'exportDocx'
+  | 'exportHwpx'
   | 'exportPdf'
+  | 'importFile'
   | 'print'
   | 'copyRich'
 
@@ -122,8 +166,12 @@ export interface EditorApi {
   exportMarkdown(request: MarkdownExportRequest): Promise<SaveResult>
   exportRaster(request: RasterExportRequest): Promise<SaveResult>
   exportHtml(request: ExportRequest): Promise<SaveResult>
+  exportText(request: TextExportRequest): Promise<SaveResult>
+  exportBinary(request: BinaryExportRequest): Promise<SaveResult>
   exportPdf(request: ExportRequest): Promise<SaveResult>
   print(request: ExportRequest): Promise<void>
+  pickImportFile(): Promise<ImportedFilePayload | null>
+  setConvertedKind?(kind: EditableKind, baseName?: string): void
   /** put formatted text on the clipboard (HTML with a plain-text fallback) */
   copyRich(html: string, text: string): void
   setAutoCopy(on: boolean): void
@@ -147,9 +195,13 @@ export const IPC = {
   preview: 'doc:preview',
   openPaths: 'doc:open-paths',
   kindMenu: 'doc:kind-menu',
+  pickImportFile: 'doc:pick-import-file',
+  setConvertedKind: 'doc:set-converted-kind',
   exportRaster: 'export:raster',
   exportHtml: 'export:html',
   exportMarkdown: 'export:markdown',
+  exportText: 'export:text',
+  exportBinary: 'export:binary',
   exportPdf: 'export:pdf',
   print: 'export:print',
   copyRich: 'clipboard:rich',

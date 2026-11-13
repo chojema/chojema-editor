@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-13
+
+### Added
+- 텍스트(`.txt`) · Markdown(`.md`) · HTML(`.html`) · Word(`.docx`) · 한글(`.hwpx`) · PDF(`.pdf`) 문서 가져오기 및 내보내기(데스크톱·웹 공통).
+- **파일 → 가져오기…**(`⇧⌘I` / `Ctrl+Shift+I`): 현재 열려 있는 텍스트·Markdown·HTML 문서 형식으로 다른 문서를 변환해 불러옵니다. 빈 창이면 바로 채우고, 내용이 있으면 **바꾸기** 또는 **이어 붙이기**를 선택합니다.
+- 외부 문서 직접 열기(열기 창 · 끌어다 놓기 · 파일 연결): `.hwp`, `.hwpx`, `.docx`, `.pdf` 파일을 열면 변환할 형식(Markdown · HTML · 텍스트)을 골라 제목 없는 새 문서로 엽니다(원본 바이너리 파일은 덮어쓰지 않음).
+- **한글 문서 지원**: `.hwp`(HWP 5.0)와 `.hwpx`에서 본문, 서식, 표, 하이퍼링크, 이미지를 가져옵니다. 한글 문서로 내보낼 때는 표준 `.hwpx` 형식으로 저장됩니다(`.hwp` 저장은 지원하지 않음).
+- **PDF 가져오기**: 텍스트가 포함된 PDF에서 문단·제목·목록을 추출해 편집할 수 있습니다(이미지만 있는 스캔 PDF의 OCR은 지원하지 않음).
+- **내보내기 메뉴 확장**: 텍스트·Markdown·HTML 문서에서 **텍스트로 저장…**, **Markdown으로 내보내기…**, **HTML로 내보내기…**, **Word 문서(DOCX)로 내보내기…**, **한글 문서(HWPX)로 내보내기…**, **PDF로 내보내기…**를 지원합니다.
+
 ## [0.8.2] - 2026-11-08
 
 ### Changed
@@ -157,7 +167,8 @@
 - 붙여넣은 이미지를 문서 옆 `assets/` 폴더에 저장.
 - macOS(Apple Silicon) DMG, Windows(x64·ARM64) 설치 파일.
 
-[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/chojema/chojema-editor/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/chojema/chojema-editor/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/chojema/chojema-editor/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/chojema/chojema-editor/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/chojema/chojema-editor/compare/v0.7.7...v0.8.0

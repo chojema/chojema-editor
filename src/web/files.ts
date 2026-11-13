@@ -40,7 +40,17 @@ export function isAbort(error: unknown): boolean {
 export const DOCUMENT_TYPES: PickerType[] = [
   {
     description: 'Documents',
-    accept: { 'text/markdown': ['.md', '.markdown'], 'text/html': ['.html', '.htm'], 'text/plain': ['.txt'], 'application/json': ['.json'], 'image/svg+xml': ['.svg'] },
+    accept: {
+      'text/markdown': ['.md', '.markdown'],
+      'text/html': ['.html', '.htm'],
+      'text/plain': ['.txt'],
+      'application/json': ['.json'],
+      'image/svg+xml': ['.svg'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/hwp+zip': ['.hwpx'],
+      'application/x-hwp': ['.hwp'],
+      'application/pdf': ['.pdf'],
+    },
   },
 ]
 
@@ -103,7 +113,7 @@ export function download(name: string, data: Blob | string, type: string): void 
 /** save a new file: picker where available, download otherwise; null when cancelled */
 export async function saveNewFile(
   suggestedName: string,
-  data: string,
+  data: Blob | string,
   type: { description: string; mime: string; ext: string },
 ): Promise<string | null> {
   if (!canWriteFiles) {

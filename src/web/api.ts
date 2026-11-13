@@ -10,7 +10,10 @@ import { decodeText, type TextEncoding } from '../shared/encoding'
 import {
   DEFAULT_EXTENSION,
   docKindForPath,
+  isEditableKind,
+  isExternalImportPath,
   type DocKind,
+  type EditableKind,
   type EditorApi,
   type ExportRequest,
   type InitialDoc,
@@ -40,10 +43,12 @@ const IS_MAC = /Mac|iPhone|iPad/.test(navigator.platform)
 /** what a tab keeps across reloads (Save As into another format and kind switches reload) */
 interface Session {
   name: string | null
+  suggestedBase?: string | null
   kind: DocKind
   content: string
   encoding: TextEncoding
   handleId: string | null
+  importFile?: { name: string; bytes: Uint8Array }
 }
 
 /** a file handed from one tab to a new one */
@@ -52,6 +57,7 @@ interface PendingOpen {
   content: string
   encoding: TextEncoding
   handle: FileHandle | null
+  importBytes?: Uint8Array
 }
 
 const SESSION_KEY = () => `session:${tabId()}`
@@ -133,7 +139,9 @@ function untitledName(kind: DocKind): string {
 }
 
 function displayName(): string {
-  return session.name ?? untitledName(session.kind)
+  if (session.name) return session.name
+  if (session.suggestedBase) return `${session.suggestedBase}.${DEFAULT_EXTENSION[session.kind]}`
+  return untitledName(session.kind)
 }
 
 function refreshTitle(): void {
@@ -158,7 +166,11 @@ async function storeHandle(next: FileHandle | null): Promise<string | null> {
 }
 
 async function readOpened({ file, handle: fileHandle }: OpenedFile): Promise<PendingOpen> {
-  const { text, encoding } = decodeText(new Uint8Array(await file.arrayBuffer()))
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  if (isExternalImportPath(file.name)) {
+    return { name: file.name, content: '', encoding: 'UTF-8', handle: null, importBytes: bytes }
+  }
+  const { text, encoding } = decodeText(bytes)
   return { name: file.name, content: text, encoding, handle: fileHandle }
 }
 
@@ -172,6 +184,17 @@ async function initialSession(): Promise<Session> {
     const pending = await getItem<PendingOpen>(`open:${openId}`)
     await deleteItem(`open:${openId}`)
     if (pending) {
+      if (pending.importBytes) {
+        return {
+          name: null,
+          suggestedBase: pending.name.replace(/\.[^.]+$/, ''),
+          kind: 'markdown',
+          content: '',
+          encoding: 'UTF-8',
+          handleId: null,
+          importFile: { name: pending.name, bytes: pending.importBytes },
+        }
+      }
       const handleId = await storeHandle(pending.handle)
       return { name: pending.name, kind: docKindForPath(pending.name), content: pending.content, encoding: pending.encoding, handleId }
     }
@@ -197,6 +220,19 @@ async function openFiles(files: OpenedFile[]): Promise<void> {
     openTab(`open=${id}`)
   }
   if (here) {
+    if (here.importBytes) {
+      await storeSession({
+        name: null,
+        suggestedBase: here.name.replace(/\.[^.]+$/, ''),
+        kind: 'markdown',
+        content: '',
+        encoding: 'UTF-8',
+        handleId: null,
+        importFile: { name: here.name, bytes: here.importBytes },
+      })
+      location.reload()
+      return
+    }
     const handleId = await storeHandle(here.handle)
     await storeSession({ name: here.name, kind: docKindForPath(here.name), content: here.content, encoding: here.encoding, handleId })
     location.reload()
@@ -205,7 +241,13 @@ async function openFiles(files: OpenedFile[]): Promise<void> {
 
 async function openWithDialog(): Promise<void> {
   try {
-    await openFiles(await pickFiles({ accept: '.md,.markdown,.html,.htm,.txt,.json,.svg,text/*', types: DOCUMENT_TYPES, multiple: true }))
+    await openFiles(
+      await pickFiles({
+        accept: '.md,.markdown,.html,.htm,.txt,.json,.svg,.hwp,.hwpx,.docx,.pdf,text/*',
+        types: DOCUMENT_TYPES,
+        multiple: true,
+      }),
+    )
   } catch (error) {
     alert(String(error))
   }
@@ -255,7 +297,7 @@ async function saveTo(target: FileHandle, content: string, handleId: string | nu
 
 async function saveAs(content: string, kind: DocKind): Promise<SaveResult> {
   if (!confirmUtf8()) return { ok: false }
-  const suggested = session.name ?? untitledName(kind)
+  const suggested = session.name ?? displayName()
   try {
     if (!canWriteFiles) {
       download(suggested, content, MIME[kind])
@@ -285,7 +327,7 @@ function exportName(ext: string): string {
   return `${displayName().replace(/\.[^.]+$/, '')}.${ext}`
 }
 
-async function exportFile(ext: string, data: string, type: { description: string; mime: string }): Promise<SaveResult> {
+async function exportFile(ext: string, data: Blob | string, type: { description: string; mime: string }): Promise<SaveResult> {
   try {
     const name = await saveNewFile(exportName(ext), data, { ...type, ext })
     return name ? { ok: true, path: name } : { ok: false }
@@ -349,12 +391,16 @@ function showMenu(): void {
     })),
     { type: 'separator' },
     { label: mt('열기…'), shortcut: `${MOD}O`, click: () => void openWithDialog() },
+    { label: mt('가져오기…'), shortcut: `${MOD}${SHIFT}I`, enabled: isEditableKind(session.kind), click: () => sendMenu('importFile') },
     { label: mt('저장'), shortcut: `${MOD}S`, click: () => sendMenu('save') },
     { label: mt('다른 이름으로 저장…'), shortcut: `${MOD}${SHIFT}S`, click: () => sendMenu('saveAs') },
     { type: 'separator' },
     { label: mt('이미지로 내보내기…'), enabled: session.kind === 'svg', click: () => sendMenu('exportImage') },
+    { label: mt('텍스트로 저장…'), enabled: isEditableKind(session.kind), click: () => sendMenu('exportText') },
+    { label: mt('Markdown으로 저장…'), enabled: isEditableKind(session.kind), click: () => sendMenu('exportMarkdown') },
     { label: mt('HTML로 저장…'), click: () => sendMenu('exportHtml') },
-    { label: mt('Markdown으로 저장…'), enabled: session.kind === 'html', click: () => sendMenu('exportMarkdown') },
+    { label: mt('Word 문서(DOCX)로 내보내기…'), enabled: isEditableKind(session.kind), click: () => sendMenu('exportDocx') },
+    { label: mt('한글 문서(HWPX)로 내보내기…'), enabled: isEditableKind(session.kind), click: () => sendMenu('exportHwpx') },
     { label: mt('서식 있는 텍스트로 복사'), click: () => sendMenu('copyRich') },
     { label: mt('PDF로 내보내기…'), shortcut: `${MOD}${SHIFT}E`, click: () => sendMenu('exportPdf') },
     { label: mt('인쇄…'), shortcut: `${MOD}P`, click: () => sendMenu('print') },
@@ -385,6 +431,7 @@ function installShortcuts(): void {
             {
               KeyS: shift ? 'saveAs' : 'save',
               KeyO: shift ? 'toggleOutline' : 'open',
+              KeyI: shift ? 'importFile' : null,
               KeyE: shift ? 'exportPdf' : null,
               KeyP: shift ? null : 'print',
               KeyF: shift ? null : 'find',
@@ -420,7 +467,12 @@ const droppedFiles = new Map<string, File>()
 function createWebApi(): EditorApi {
   return {
     async getInitialDoc(): Promise<InitialDoc> {
-      await storeSession(await initialSession())
+      const loaded = await initialSession()
+      const importFile = loaded.importFile
+      if (importFile) {
+        delete loaded.importFile
+      }
+      await storeSession(loaded)
       refreshTitle()
       document.documentElement.lang = currentLanguage()
       return {
@@ -431,6 +483,7 @@ function createWebApi(): EditorApi {
         encoding: session.encoding,
         autoCopy: autoCopyPref(),
         autoComplete: autoCompletePref(),
+        ...(importFile ? { importFile } : {}),
       }
     },
     save,
@@ -482,6 +535,40 @@ function createWebApi(): EditorApi {
       } catch (error) { return { ok: false, error: String(error) } }
     },
     exportHtml: (request) => exportFile('html', request.html, { description: 'HTML', mime: 'text/html' }),
+    exportText: (request) =>
+      request.format === 'markdown'
+        ? exportFile('md', request.text, { description: 'Markdown', mime: 'text/markdown' })
+        : exportFile('txt', request.text, { description: 'Text', mime: 'text/plain' }),
+    exportBinary: (request) => {
+      const isDocx = request.format === 'docx'
+      const mime = isDocx
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : 'application/hwp+zip'
+      return exportFile(request.format, new Blob([new Uint8Array(request.bytes)], { type: mime }), {
+        description: isDocx ? 'Word (DOCX)' : 'Hangul (HWPX)',
+        mime,
+      })
+    },
+    async pickImportFile() {
+      const [picked] = await pickFiles({
+        accept: '.txt,.md,.markdown,.html,.htm,.hwp,.hwpx,.docx,.pdf,text/*',
+        types: DOCUMENT_TYPES,
+        multiple: false,
+      })
+      if (!picked) return null
+      return {
+        name: picked.file.name,
+        path: null,
+        bytes: new Uint8Array(await picked.file.arrayBuffer()),
+      }
+    },
+    setConvertedKind(kind: EditableKind, baseName?: string) {
+      session.kind = kind
+      session.name = null
+      if (baseName !== undefined) session.suggestedBase = baseName || null
+      refreshTitle()
+      void storeSession(session)
+    },
     // browsers make PDFs only through the print dialog ("Save as PDF")
     async exportPdf(request) {
       await printPage(request)

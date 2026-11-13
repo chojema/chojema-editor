@@ -18,6 +18,8 @@ export interface SurfaceHandle {
   exportPage(): Promise<ExportRequest>
   /** the document as formatted text for the clipboard */
   richCopy(): Promise<{ html: string; text: string }>
+  /** replace or append imported content in the active surface */
+  applyImportedContent?(content: string, mode: 'replace' | 'append'): void
 }
 
 export interface DocStats {

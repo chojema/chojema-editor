@@ -20,8 +20,12 @@ const api: EditorApi = {
   exportMarkdown: (request) => ipcRenderer.invoke(IPC.exportMarkdown, request),
   exportRaster: (request) => ipcRenderer.invoke(IPC.exportRaster, request),
   exportHtml: (request) => ipcRenderer.invoke(IPC.exportHtml, request),
+  exportText: (request) => ipcRenderer.invoke(IPC.exportText, request),
+  exportBinary: (request) => ipcRenderer.invoke(IPC.exportBinary, request),
   exportPdf: (request) => ipcRenderer.invoke(IPC.exportPdf, request),
   print: (request) => ipcRenderer.invoke(IPC.print, request),
+  pickImportFile: () => ipcRenderer.invoke(IPC.pickImportFile),
+  setConvertedKind: (kind, baseName) => ipcRenderer.send(IPC.setConvertedKind, kind, baseName),
   copyRich: (html, text) => ipcRenderer.send(IPC.copyRich, html, text),
   setAutoCopy: (on) => ipcRenderer.send(IPC.setAutoCopy, on),
   onLanguageChanged(handler) {

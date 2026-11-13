@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { EditorView } from '@codemirror/view'
 import { undo as undoCode, redo as redoCode } from '@codemirror/commands'
-import { docKindForPath, type DocKind, type InitialDoc } from '../shared/ipc'
+import { docKindForPath, isEditableKind, OPENABLE_FILE_RE, type DocKind, type EditableKind, type InitialDoc } from '../shared/ipc'
 import { lineEnding, type TextEncoding } from '../shared/encoding'
 import { TextSurface } from './text/TextSurface'
 import { editorWarmups, loadSurface, type DeferredKind, type SurfaceComponent } from './editorModules'
 import { warmIdleModules } from './idleModules'
 import { ToastHost } from './components/toast'
 import { AutoCopy } from './components/AutoCopy'
+import { ImportModeDialog, TargetFormatDialog } from './components/ImportDialogs'
 import { showToast } from './components/toast-bus'
 import type { DocStats, SurfaceHandle } from './surface'
 import { t, setLanguage, useI18n, type StringKey } from './i18n/locale'
@@ -25,7 +26,7 @@ const zoomIn = (value: number) => ZOOM_STEPS.find((step) => step > value) ?? val
 const zoomOut = (value: number) => [...ZOOM_STEPS].reverse().find((step) => step < value) ?? value
 
 /** files a drop on the window opens as documents (images go into the document instead) */
-const OPENABLE = /\.(md|markdown|mdown|mkd|html?|xhtml|txt|json|svg)$/i
+const OPENABLE = OPENABLE_FILE_RE
 
 function readPref(key: string, fallback: string): string {
   try {
@@ -59,7 +60,11 @@ export function App() {
   const [loaded, setLoaded] = useState<{ kind: DeferredKind; Surface: SurfaceComponent } | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [loadAttempt, setLoadAttempt] = useState(0)
-  const kind = initial?.kind
+  const [pendingOpenImport, setPendingOpenImport] = useState<{ name: string; bytes: Uint8Array } | null>(null)
+  const [convertingOpen, setConvertingOpen] = useState(false)
+  const [convertError, setConvertError] = useState<string | null>(null)
+  const [pendingInlineImport, setPendingInlineImport] = useState<{ name: string; content: string } | null>(null)
+  const kind = pendingOpenImport ? undefined : initial?.kind
   const Surface = kind === 'text' ? TextSurface : loaded && loaded.kind === kind ? loaded.Surface : null
 
   useEffect(() => {
@@ -87,6 +92,9 @@ export function App() {
     })
     void window.editorApi.getInitialDoc().then((doc) => {
       if (!languageChanged) setLanguage(doc.language)
+      if (doc.importFile) {
+        setPendingOpenImport(doc.importFile)
+      }
       setInitial(doc)
       setPath(doc.path)
       setEncoding(doc.encoding)
@@ -164,15 +172,43 @@ export function App() {
     [initial],
   )
 
-  const exportAs = useCallback(async (target: 'html' | 'markdown' | 'pdf' | 'print') => {
+  const exportAs = useCallback(async (target: 'text' | 'html' | 'markdown' | 'docx' | 'hwpx' | 'pdf' | 'print') => {
     const surface = surfaceRef.current
-    if (!surface) return
+    if (!surface || !initial) return
     try {
+      if (target === 'text') {
+        if (!isEditableKind(initial.kind)) return
+        const { exportToTextFormat } = await import('./convert')
+        const text = await exportToTextFormat({ sourceKind: initial.kind, content: surface.getContent(), target: 'text' })
+        const result = await window.editorApi.exportText({ format: 'text', text })
+        if (result.ok) showToast(t('exported'))
+        else if (result.error) showToast(t('exportFailed', { error: result.error }), 'error')
+        return
+      }
       if (target === 'markdown') {
-        if (initial?.kind !== 'html') return
-        const content = surface.getContent()
-        const { htmlToMarkdown } = await import('./html/toMarkdown')
-        const result = await window.editorApi.exportMarkdown(htmlToMarkdown(content))
+        if (initial.kind === 'html') {
+          const content = surface.getContent()
+          const { htmlToMarkdown } = await import('./html/toMarkdown')
+          const result = await window.editorApi.exportMarkdown(htmlToMarkdown(content))
+          if (result.ok) showToast(t('exported'))
+          else if (result.error) showToast(t('exportFailed', { error: result.error }), 'error')
+          return
+        }
+        if (!isEditableKind(initial.kind)) return
+        const { exportToTextFormat } = await import('./convert')
+        const text = await exportToTextFormat({ sourceKind: initial.kind, content: surface.getContent(), target: 'markdown' })
+        const result = await window.editorApi.exportText({ format: 'markdown', text })
+        if (result.ok) showToast(t('exported'))
+        else if (result.error) showToast(t('exportFailed', { error: result.error }), 'error')
+        return
+      }
+      if (target === 'docx' || target === 'hwpx') {
+        if (!isEditableKind(initial.kind)) return
+        const page = await surface.exportPage()
+        const { baseNameWithoutExt, exportToBinaryFormat } = await import('./convert')
+        const title = path ? baseNameWithoutExt(path) : 'Document'
+        const bytes = await exportToBinaryFormat({ html: page.html, title, target })
+        const result = await window.editorApi.exportBinary({ format: target, bytes })
         if (result.ok) showToast(t('exported'))
         else if (result.error) showToast(t('exportFailed', { error: result.error }), 'error')
         return
@@ -188,7 +224,60 @@ export function App() {
     } catch (error) {
       showToast(t('exportFailed', { error: String(error) }), 'error')
     }
-  }, [initial?.kind])
+  }, [initial, path])
+
+  const importFileIntoSurface = useCallback(async () => {
+    const surface = surfaceRef.current
+    if (!surface || !initial || !isEditableKind(initial.kind)) return
+    try {
+      const picked = await window.editorApi.pickImportFile()
+      if (!picked) return
+      const { importBytesToKind } = await import('./convert')
+      const converted = await importBytesToKind({ name: picked.name, bytes: picked.bytes, targetKind: initial.kind })
+      const cur = surface.getContent()
+      const isEmpty =
+        !dirtyRef.current &&
+        (cur === '' || (initial.kind === 'html' && !path && /<body>\s*(?:<p>\s*<\/p>\s*)?<\/body>/i.test(cur)))
+      if (isEmpty) {
+        surface.applyImportedContent?.(converted, 'replace')
+        showToast(t('imported'))
+      } else {
+        setPendingInlineImport({ name: picked.name, content: converted })
+      }
+    } catch (error) {
+      showToast(t('importFailed', { error: error instanceof Error ? error.message : String(error) }), 'error')
+    }
+  }, [initial, path])
+
+  const chooseTargetKind = useCallback(async (chosenKind: EditableKind) => {
+    if (!pendingOpenImport || !initial) return
+    setConvertingOpen(true)
+    setConvertError(null)
+    try {
+      const { baseNameWithoutExt, importBytesToKind } = await import('./convert')
+      const converted = await importBytesToKind({
+        name: pendingOpenImport.name,
+        bytes: pendingOpenImport.bytes,
+        targetKind: chosenKind,
+      })
+      const base = baseNameWithoutExt(pendingOpenImport.name)
+      window.editorApi.setConvertedKind?.(chosenKind, base)
+      setInitial({ ...initial, kind: chosenKind, content: converted, importFile: undefined })
+      setPendingOpenImport(null)
+    } catch (error) {
+      setConvertError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setConvertingOpen(false)
+    }
+  }, [pendingOpenImport, initial])
+
+  const cancelTargetKind = useCallback(() => {
+    if (!initial) return
+    window.editorApi.setConvertedKind?.('text', '')
+    setInitial({ ...initial, kind: 'text', content: '', importFile: undefined })
+    setPendingOpenImport(null)
+    setConvertError(null)
+  }, [initial])
 
   useEffect(
     () =>
@@ -243,11 +332,23 @@ export function App() {
           case 'zoomReset':
             setZoom(100)
             break
+          case 'importFile':
+            void importFileIntoSurface()
+            break
+          case 'exportText':
+            void exportAs('text')
+            break
           case 'exportMarkdown':
             void exportAs('markdown')
             break
           case 'exportHtml':
             void exportAs('html')
+            break
+          case 'exportDocx':
+            void exportAs('docx')
+            break
+          case 'exportHwpx':
+            void exportAs('hwpx')
             break
           case 'exportPdf':
             void exportAs('pdf')
@@ -265,10 +366,23 @@ export function App() {
             break
         }
       }),
-    [save, exportAs],
+    [save, exportAs, importFileIntoSurface],
   )
 
   useEffect(() => window.editorApi.onSaveBeforeClose(() => save()), [save])
+
+  if (pendingOpenImport) return (
+    <div className="app">
+      <TargetFormatDialog
+        fileName={pendingOpenImport.name}
+        busy={convertingOpen}
+        error={convertError}
+        onChoose={(chosen) => void chooseTargetKind(chosen)}
+        onCancel={cancelTargetKind}
+      />
+      <ToastHost />
+    </div>
+  )
 
   if (!initial || !Surface) return (
     <div className="app-loading" role={loadFailed ? 'alert' : 'status'}>
@@ -360,6 +474,17 @@ export function App() {
       </footer>
       <AutoCopy enabled={autoCopy} />
       <ToastHost />
+      {pendingInlineImport && (
+        <ImportModeDialog
+          fileName={pendingInlineImport.name}
+          onSelect={(mode) => {
+            surfaceRef.current?.applyImportedContent?.(pendingInlineImport.content, mode)
+            setPendingInlineImport(null)
+            showToast(t('imported'))
+          }}
+          onCancel={() => setPendingInlineImport(null)}
+        />
+      )}
     </div>
   )
 }

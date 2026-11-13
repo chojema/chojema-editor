@@ -309,8 +309,23 @@ export const HtmlSurface = forwardRef<SurfaceHandle, SurfaceProps>(function Html
         const html = editor ? cleanSerializedHtml(editor.getHTML(), BARE_ATTR) : ''
         return { html, text: editor?.getText({ blockSeparator: '\n\n' }) ?? '' }
       },
+      applyImportedContent(imported, mode) {
+        views.settle()
+        const next =
+          mode === 'append'
+            ? (() => {
+                const curEnv = parseHtmlDocument(views.getContent())
+                const impEnv = parseHtmlDocument(imported)
+                if (!curEnv.body.trim()) return serializeHtmlDocument(curEnv, impEnv.body)
+                return serializeHtmlDocument(curEnv, `${curEnv.body}\n${impEnv.body}`)
+              })()
+            : imported
+        load(next, true)
+        views.reseed(true)
+        onDirty()
+      },
     }),
-    [views, editor, outlineOpen, setOutlineOpen, path],
+    [views, editor, outlineOpen, setOutlineOpen, path, load, onDirty],
   )
 
   const showOutline = outlineOpen && views.mode !== 'source' && editor

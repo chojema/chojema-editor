@@ -9,12 +9,18 @@ import {
   DEFAULT_EXTENSION,
   docKindForPath,
   IPC,
+  isEditableKind,
+  isExternalImportPath,
+  type BinaryExportRequest,
   type DocKind,
+  type EditableKind,
   type ExportRequest,
+  type ImportedFilePayload,
   type InitialDoc,
   type MenuCommand,
   type MarkdownExportRequest,
   type SaveResult,
+  type TextExportRequest,
 } from '../shared/ipc'
 import { resolveLanguage, type LanguagePreference } from '../shared/language'
 import { markdownForDestination } from './markdownExport'
@@ -35,6 +41,8 @@ const DEV_ICON = join(__dirname, '../../build/icon.png')
 /** per-window document state; the renderer owns the text, main owns the path */
 interface WindowDoc {
   path: string | null
+  importPath?: string | null
+  suggestedBase?: string | null
   kind: DocKind
   dirty: boolean
   /** set once the user confirmed (or saved) so the next close goes through */
@@ -92,7 +100,11 @@ function registerAssetProtocol(): void {
 }
 
 function windowTitle(doc: WindowDoc): string {
-  const name = doc.path ? basename(doc.path) : untitledName(doc.kind)
+  const name = doc.path
+    ? basename(doc.path)
+    : doc.suggestedBase
+      ? `${doc.suggestedBase}.${DEFAULT_EXTENSION[doc.kind]}`
+      : untitledName(doc.kind)
   return `${doc.dirty ? '● ' : ''}${name} — ${APP_NAME}`
 }
 
@@ -119,7 +131,7 @@ function createWindow(path: string | null, kind: DocKind = docKindForPath(path))
   // a file that is already open just comes to the front
   if (path) {
     for (const [id, doc] of docs) {
-      if (doc.path === path) {
+      if (doc.path === path || doc.importPath === path) {
         const existing = BrowserWindow.fromId(id)
         if (existing) {
           existing.show()
@@ -129,6 +141,8 @@ function createWindow(path: string | null, kind: DocKind = docKindForPath(path))
       }
     }
   }
+  const external = isExternalImportPath(path)
+  const initialKind: DocKind = external ? 'markdown' : kind
   const focused = BrowserWindow.getFocusedWindow()
   const win = new BrowserWindow({
     width: 1100,
@@ -147,7 +161,15 @@ function createWindow(path: string | null, kind: DocKind = docKindForPath(path))
       spellcheck: false,
     },
   })
-  docs.set(win.id, { path, kind, dirty: false, closing: false, encoding: 'UTF-8' })
+  docs.set(win.id, {
+    path: external ? null : path,
+    importPath: external ? path : null,
+    suggestedBase: external && path ? basename(path).replace(/\.[^.]+$/, '') : null,
+    kind: initialKind,
+    dirty: false,
+    closing: false,
+    encoding: 'UTF-8',
+  })
   refreshTitle(win)
 
   win.once('ready-to-show', () => win.show())
@@ -227,8 +249,9 @@ async function pickSavePath(win: BrowserWindow, doc: WindowDoc, kind: DocKind): 
     json: [{ name: 'JSON', extensions: ['json'] }],
     svg: [{ name: 'SVG', extensions: ['svg'] }],
   }[kind]
+  const defaultBase = doc.suggestedBase ? `${doc.suggestedBase}.${ext}` : untitledName(kind).replace(/\.[a-z]+$/, `.${ext}`)
   const { canceled, filePath } = await dialog.showSaveDialog(win, {
-    defaultPath: doc.path ?? untitledName(kind).replace(/\.[a-z]+$/, `.${ext}`),
+    defaultPath: doc.path ?? defaultBase,
     filters: [...filters, { name: mt('모든 파일'), extensions: ['*'] }],
   })
   return canceled || !filePath ? null : filePath
@@ -268,7 +291,9 @@ async function writeDoc(
 }
 
 function exportName(doc: WindowDoc, ext: string): string {
-  const base = doc.path ? basename(doc.path).replace(/\.[^.]+$/, '') : untitledName(doc.kind).replace(/\.[^.]+$/, '')
+  const base = doc.path
+    ? basename(doc.path).replace(/\.[^.]+$/, '')
+    : doc.suggestedBase || untitledName(doc.kind).replace(/\.[^.]+$/, '')
   return join(doc.path ? dirname(doc.path) : app.getPath('documents'), `${base}.${ext}`)
 }
 
@@ -390,7 +415,10 @@ async function openWithDialog(): Promise<void> {
   const options: Electron.OpenDialogOptions = {
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: mt('지원 문서'), extensions: ['md', 'markdown', 'html', 'htm', 'txt', 'json', 'svg'] },
+      {
+        name: mt('지원 문서'),
+        extensions: ['md', 'markdown', 'html', 'htm', 'txt', 'json', 'svg', 'hwp', 'hwpx', 'docx', 'pdf'],
+      },
       { name: mt('모든 파일'), extensions: ['*'] },
     ],
   }
@@ -425,9 +453,18 @@ function openPath(path: string): void {
   // an untouched untitled window is reused instead of leaving an empty one behind
   const focused = BrowserWindow.getFocusedWindow()
   const doc = focused ? docs.get(focused.id) : undefined
-  if (focused && doc && doc.path === null && !doc.dirty) {
-    doc.path = path
-    doc.kind = docKindForPath(path)
+  if (focused && doc && doc.path === null && !doc.importPath && !doc.dirty) {
+    if (isExternalImportPath(path)) {
+      doc.path = null
+      doc.importPath = path
+      doc.suggestedBase = basename(path).replace(/\.[^.]+$/, '')
+      doc.kind = 'markdown'
+    } else {
+      doc.path = path
+      doc.importPath = null
+      doc.suggestedBase = null
+      doc.kind = docKindForPath(path)
+    }
     refreshTitle(focused)
     focused.reload()
     app.addRecentDocument(path)
@@ -441,11 +478,16 @@ function sendMenu(command: MenuCommand): void {
 }
 
 function updateExportMenu(): void {
-  const item = Menu.getApplicationMenu()?.getMenuItemById('exportMarkdown')
+  const menu = Menu.getApplicationMenu()
   const win = BrowserWindow.getFocusedWindow()
-  if (item) item.enabled = !!win && docs.get(win.id)?.kind === 'html'
-  const imageItem = Menu.getApplicationMenu()?.getMenuItemById('exportImage')
-  if (imageItem) imageItem.enabled = !!win && docs.get(win.id)?.kind === 'svg'
+  const kind = win ? docs.get(win.id)?.kind : undefined
+  const editable = !!kind && isEditableKind(kind)
+  for (const id of ['importFile', 'exportText', 'exportMarkdown', 'exportDocx', 'exportHwpx']) {
+    const item = menu?.getMenuItemById(id)
+    if (item) item.enabled = editable
+  }
+  const imageItem = menu?.getMenuItemById('exportImage')
+  if (imageItem) imageItem.enabled = kind === 'svg'
 }
 
 function buildMenu(): void {
@@ -472,6 +514,7 @@ function buildMenu(): void {
         { label: mt('새 JSON 문서'), accelerator: 'CmdOrCtrl+Alt+J', click: () => newDocument('json') },
         { type: 'separator' },
         { label: mt('열기…'), accelerator: 'CmdOrCtrl+O', click: () => void openWithDialog() },
+        { id: 'importFile', label: mt('가져오기…'), accelerator: 'CmdOrCtrl+Shift+I', click: () => sendMenu('importFile') },
         { role: 'recentDocuments', label: mt('최근 문서'), submenu: [{ role: 'clearRecentDocuments', label: mt('목록 지우기') }] },
         { type: 'separator' },
         { label: mt('저장'), accelerator: 'CmdOrCtrl+S', click: () => sendMenu('save') },
@@ -481,8 +524,11 @@ function buildMenu(): void {
           label: mt('내보내기'),
           submenu: [
             { id: 'exportImage', label: mt('이미지로 내보내기…'), click: () => sendMenu('exportImage') },
-            { label: mt('HTML로 저장…'), click: () => sendMenu('exportHtml') },
+            { id: 'exportText', label: mt('텍스트로 저장…'), click: () => sendMenu('exportText') },
             { id: 'exportMarkdown', label: mt('Markdown으로 저장…'), click: () => sendMenu('exportMarkdown') },
+            { label: mt('HTML로 저장…'), click: () => sendMenu('exportHtml') },
+            { id: 'exportDocx', label: mt('Word 문서(DOCX)로 내보내기…'), click: () => sendMenu('exportDocx') },
+            { id: 'exportHwpx', label: mt('한글 문서(HWPX)로 내보내기…'), click: () => sendMenu('exportHwpx') },
             { label: mt('서식 있는 텍스트로 복사'), click: () => sendMenu('copyRich') },
           ],
         },
@@ -591,6 +637,27 @@ function registerIpc(): void {
     const language = currentLanguage()
     if (!found) return { path: null, kind: 'text', content: '', encoding: 'UTF-8', autoCopy, autoComplete, language }
     const { doc } = found
+    if (doc.importPath) {
+      try {
+        const raw = await readFile(doc.importPath)
+        return {
+          path: null,
+          kind: doc.kind,
+          content: '',
+          encoding: 'UTF-8',
+          autoCopy,
+          autoComplete,
+          language,
+          importFile: { name: basename(doc.importPath), bytes: new Uint8Array(raw) },
+        }
+      } catch (error) {
+        dialog.showErrorBox(mt('파일을 열 수 없습니다'), `${doc.importPath}\n\n${String(error)}`)
+        doc.importPath = null
+        doc.suggestedBase = null
+        refreshTitle(found.win)
+        return { path: null, kind: 'text', content: '', encoding: 'UTF-8', autoCopy, autoComplete, language }
+      }
+    }
     if (!doc.path) return { path: null, kind: doc.kind, content: '', encoding: 'UTF-8', autoCopy, autoComplete, language }
     try {
       const { text, encoding } = decodeText(await readFile(doc.path))
@@ -735,6 +802,80 @@ function registerIpc(): void {
     } catch (error) {
       return { ok: false, error: String(error) }
     }
+  })
+
+  ipcMain.handle(IPC.exportText, async (event, request: TextExportRequest): Promise<SaveResult> => {
+    const found = docFor(event.sender)
+    if (!found) return { ok: false }
+    const isMd = request.format === 'markdown'
+    const ext = isMd ? 'md' : 'txt'
+    const filters = isMd
+      ? [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
+      : [{ name: mt('텍스트'), extensions: ['txt'] }]
+    try {
+      const { canceled, filePath } = await dialog.showSaveDialog(found.win, {
+        title: isMd ? mt('Markdown으로 저장…') : mt('텍스트로 저장…'),
+        defaultPath: exportName(found.doc, ext),
+        filters,
+      })
+      if (canceled || !filePath) return { ok: false }
+      if (found.doc.path && resolve(filePath) === resolve(found.doc.path)) {
+        return { ok: false, error: mt('원본과 다른 파일을 선택해 주세요.') }
+      }
+      await writeFile(filePath, request.text, 'utf8')
+      return { ok: true, path: filePath }
+    } catch (error) {
+      return { ok: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle(IPC.exportBinary, async (event, request: BinaryExportRequest): Promise<SaveResult> => {
+    const found = docFor(event.sender)
+    if (!found) return { ok: false }
+    const isDocx = request.format === 'docx'
+    const ext = isDocx ? 'docx' : 'hwpx'
+    const filterName = isDocx ? 'Word (DOCX)' : 'Hangul (HWPX)'
+    try {
+      const { canceled, filePath } = await dialog.showSaveDialog(found.win, {
+        title: isDocx ? mt('Word 문서(DOCX)로 내보내기…') : mt('한글 문서(HWPX)로 내보내기…'),
+        defaultPath: exportName(found.doc, ext),
+        filters: [{ name: filterName, extensions: [ext] }],
+      })
+      if (canceled || !filePath) return { ok: false }
+      await writeFile(filePath, Buffer.from(request.bytes))
+      return { ok: true, path: filePath }
+    } catch (error) {
+      return { ok: false, error: String(error) }
+    }
+  })
+
+  ipcMain.handle(IPC.pickImportFile, async (event): Promise<ImportedFilePayload | null> => {
+    const found = docFor(event.sender)
+    if (!found) return null
+    const { canceled, filePaths } = await dialog.showOpenDialog(found.win, {
+      title: mt('가져오기…'),
+      properties: ['openFile'],
+      filters: [
+        {
+          name: mt('가져올 수 있는 문서'),
+          extensions: ['txt', 'md', 'markdown', 'html', 'htm', 'hwp', 'hwpx', 'docx', 'pdf'],
+        },
+        { name: mt('모든 파일'), extensions: ['*'] },
+      ],
+    })
+    if (canceled || !filePaths[0]) return null
+    const picked = filePaths[0]
+    const raw = await readFile(picked)
+    return { name: basename(picked), path: picked, bytes: new Uint8Array(raw) }
+  })
+
+  ipcMain.on(IPC.setConvertedKind, (event, kind: EditableKind, baseName?: string) => {
+    const found = docFor(event.sender)
+    if (!found) return
+    found.doc.kind = kind
+    found.doc.importPath = null
+    if (baseName !== undefined) found.doc.suggestedBase = baseName || null
+    refreshTitle(found.win)
   })
 
   ipcMain.handle(IPC.exportPdf, async (event, request: ExportRequest): Promise<SaveResult> => {

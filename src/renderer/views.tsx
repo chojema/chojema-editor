@@ -112,14 +112,14 @@ export function useViewModes({ prefKey, serialize, load, onDirty, onStats, initi
   )
 
   /** after the surface loads a file: give an open source pane the same text */
-  const reseed = useCallback(() => {
+  const reseed = useCallback((addToHistory = false) => {
     if (timer.current !== null) window.clearTimeout(timer.current)
     timer.current = null
     pending.current = null
     pendingSourceRef.current = null
     const text = fns.current.serialize()
     syncedRef.current = text
-    if (sourceRef.current) sourceRef.current.setValue(text)
+    if (sourceRef.current) sourceRef.current.setValue(text, addToHistory)
     else setSourceSeed(text)
   }, [])
 

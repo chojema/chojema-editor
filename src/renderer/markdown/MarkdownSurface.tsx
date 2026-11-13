@@ -182,8 +182,23 @@ export const MarkdownSurface = forwardRef<SurfaceHandle, SurfaceProps>(function 
         const html = editor ? await renderedMarkdownBody(editor) : ''
         return { html, text: editor?.getText({ blockSeparator: '\n\n' }) ?? '' }
       },
+      applyImportedContent(imported, mode) {
+        views.settle()
+        const next =
+          mode === 'append'
+            ? (() => {
+                const cur = views.getContent()
+                if (!cur.trim()) return imported
+                const sep = cur.endsWith('\n\n') ? '' : cur.endsWith('\n') ? '\n' : '\n\n'
+                return `${cur}${sep}${imported}`
+              })()
+            : imported
+        load(next, true)
+        views.reseed(true)
+        onDirty()
+      },
     }),
-    [views, editor, outlineOpen, setOutlineOpen, path],
+    [views, editor, outlineOpen, setOutlineOpen, path, load, onDirty],
   )
 
   const showOutline = outlineOpen && views.mode !== 'source' && editor

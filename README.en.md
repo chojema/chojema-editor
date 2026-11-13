@@ -91,11 +91,15 @@ Opening the app without a file starts an empty text document. The web version re
 - **Outline** (`⇧⌘O`): list of headings; click one to jump there
 - **Find & replace** (`⌘F`, `⌥⌘F`): match case, replace, replace all
 - **Export to PDF** (File menu, `⇧⌘E`) and **Print** (File menu, `⌘P`)
-- **Export** (File → Export): Markdown → **Save as HTML…**, HTML → **Save as Markdown…**, or copy formatted text for mail and blogs. Exports the current visual, split or source view contents while keeping the original document open and unchanged.
+- **Import & Export across formats** (Desktop & Web): convert between Text, Markdown, and HTML, and exchange with Word (`.docx`), Hangul (`.hwpx` / `.hwp`), and PDF (`.pdf`) while leaving original files untouched.
+  - **File → Import…** (`⇧⌘I` / `Ctrl+Shift+I`): import `.txt`, `.md`, `.html`, `.hwp`, `.hwpx`, `.docx`, or `.pdf` into the current Text, Markdown, or HTML document. Loads directly into an empty document, or prompts Replace vs Append when non-empty.
+  - **Opening external documents**: opening or dropping `.hwp`, `.hwpx`, `.docx`, or `.pdf` prompts you to choose a target format (Markdown, HTML, or Text) and opens the converted result as a new untitled document without overwriting the binary file.
+  - **Export** (File → Export / Web document menu): **Save as Text…**, **Export as Markdown…**, **Export as HTML…**, **Export as Word (DOCX)…**, **Export as Hangul (HWPX)…**, or copy formatted text for mail and blogs.
+  - **Format notes**: `.hwp` (HWP 5.0) is import-only; Hangul export creates standard `.hwpx`. PDF import extracts text-based PDFs (scanned image PDFs without text do not use OCR).
   - HTML → Markdown converts headings, emphasis, quotes, lists/tasks, code, links/images and tables. Merged or nested tables remain HTML inside Markdown. CSS, fonts, page layout, scripts and interactive elements are omitted.
   - Markdown export adjusts link and image paths relative to the output folder. Image files are referenced, not copied; include them when sharing the export. Relative paths in untitled HTML documents are kept as written.
 - **Legacy Korean files**: EUC-KR (CP949) and UTF-16 files open correctly; the status bar shows the encoding and line endings (LF/CRLF). Files are saved as UTF-8, with a confirmation the first time
-- **Drag and drop**: drop a `.md`, `.html`, `.txt` or `.json` file on the window to open it
+- **Drag and drop**: drop `.md`, `.html`, `.txt`, `.json`, `.svg`, or `.hwp`, `.hwpx`, `.docx`, `.pdf` files on the window to open them
 - **Text size**: the **− 100% +** buttons at the right of the status bar (`⌘−` / `⌘=`, `⌘0` for actual size). Applies to text documents, the visual editor and the source pane
 - **Copy on select**: turn it on with the **Copy on select** button in the status bar or Edit → Copy on Select. Selected text then goes to the clipboard right away and a short "✓ Copied" tag appears; the visual editor copies formatting too
 - **Language** (View → Language: Follow System / 한국어 / English). Applies immediately to all windows while preserving your edits.
